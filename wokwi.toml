@@ -1,0 +1,7 @@
+# Only needed for the Wokwi extension in VS Code (the website ignores this file).
+# Build first, from this folder:
+#   arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir build deskpal
+[wokwi]
+version = 1
+firmware = 'build/deskpal.ino.merged.bin'
+elf = 'build/deskpal.ino.elf'

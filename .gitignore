@@ -1,0 +1,13 @@
+# Your Wi-Fi password and GitHub token. Never commit this.
+secrets.h
+
+# Build output (arduino-cli --output-dir, Arduino IDE, PlatformIO)
+build/
+.build/
+.pio/
+
+# Editor and OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

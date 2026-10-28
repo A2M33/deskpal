@@ -1,0 +1,9 @@
+# Wokwi Library List
+# Wokwi installs these before compiling. Same libraries as in the README.
+
+Adafruit SSD1306
+Adafruit GFX Library
+Adafruit BusIO
+DHT sensor library
+Adafruit Unified Sensor
+ArduinoJson

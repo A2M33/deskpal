@@ -1,0 +1,43 @@
+#pragma once
+
+// Copy this file to secrets.h (same folder) and fill in your own values.
+// secrets.h is listed in .gitignore, so your password and token stay on your computer.
+//
+// Every line is optional. Delete or comment out a line to use the default
+// from config.h instead.
+
+// ---------- Wi-Fi ----------
+// Your network name and password. Default: the open "Wokwi-GUEST" network
+// that only exists inside the Wokwi simulator.
+#define WIFI_SSID "my-home-wifi"
+#define WIFI_PASSWORD "my-wifi-password"
+
+// ---------- GitHub ----------
+// Whose contribution grid to show. Default: "A2M33".
+#define GITHUB_USER "your-github-username"
+
+// Personal access token, needed for the GitHub screen (the README explains
+// how to make one). A fine-grained token with read-only access to public
+// repositories is enough. Default: empty, which shows a setup hint instead.
+#define GITHUB_TOKEN "github_pat_xxxxxxxxxxxxxxxxxxxxxx"
+
+// ---------- Weather location ----------
+// Find your coordinates on a map; decimal degrees, north and east positive.
+// Default: Tehran.
+// #define WEATHER_LATITUDE 35.69
+// #define WEATHER_LONGITUDE 51.39
+// #define WEATHER_PLACE "Tehran"      // title on the weather screen, 14 characters max
+
+// ---------- Time zone ----------
+// A POSIX TZ string. Default: "<+0330>-3:30" (Tehran, UTC+3:30, no daylight saving).
+// Note the reversed sign: POSIX counts hours west of UTC. Some examples:
+//   Berlin:   "CET-1CEST,M3.5.0,M10.5.0/3"
+//   London:   "GMT0BST,M3.5.0/1,M10.5.0"
+//   New York: "EST5EDT,M3.2.0,M11.1.0"
+//   UTC:      "UTC0"
+// #define TIMEZONE "<+0330>-3:30"
+
+// ---------- NTP servers ----------
+// Where the clock gets its time. The defaults are fine almost everywhere.
+// #define NTP_SERVER_1 "pool.ntp.org"
+// #define NTP_SERVER_2 "time.google.com"
