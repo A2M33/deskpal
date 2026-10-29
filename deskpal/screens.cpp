@@ -137,9 +137,9 @@ void drawWeatherIcon(Adafruit_SSD1306& d, int16_t x, int16_t y, WeatherIcon icon
     case WeatherIcon::PartCloud:
       // Sun at the top right, cloud in front of it at the bottom left. The
       // cloud is first drawn 1 px bigger in black, so a dark gap separates the two.
-      drawSunAt(d, x + 16, y + 8, 4);
-      drawCloud(d, x - 1, y + 8, SSD1306_BLACK, 1);
-      drawCloud(d, x - 1, y + 8);
+      drawSunAt(d, x + 15, y + 6, 4);
+      drawCloud(d, x - 1, y + 10, SSD1306_BLACK, 1);
+      drawCloud(d, x - 1, y + 10);
       break;
     case WeatherIcon::Cloud:
       drawCloud(d, x, y + 5);
