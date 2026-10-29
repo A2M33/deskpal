@@ -5,8 +5,9 @@
 // the next screen, a long press pauses or resumes the rotation.
 //
 // loop() never waits with delay(). Each job checks millis() to see whether it
-// is its turn, does a small piece of work and returns. The one exception is a
-// web request, which can take a few seconds (see refreshOnlineData()).
+// is its turn, does a small piece of work and returns. Web requests can take
+// several seconds, so they run in their own FreeRTOS task on the other CPU
+// core (see networkTask()) and never hold up the clock, button or display.
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -27,8 +28,13 @@ DHT dht(PIN_DHT, DHT22);
 Button button(PIN_BUTTON, LONG_PRESS_MS);
 
 RoomReading room;
+
+// Written by the network task, read by loop() for drawing. Always hold
+// dataMutex while touching these two; copy them out and draw from the copy.
 WeatherData weather;
 GithubData github;
+SemaphoreHandle_t dataMutex;
+volatile bool onlineDataChanged = false;  // set by the network task, cleared by loop()
 
 uint8_t currentScreen = SCREEN_CLOCK;
 bool rotationPaused = false;
@@ -45,14 +51,6 @@ bool clockStarted = false;
 
 unsigned long lastRoomReadMs = 0;
 bool roomReadOnce = false;
-
-// "When did we last try, and how long until the next try?" for each web source.
-// Comparing elapsed time (now - last) instead of a target time keeps working
-// when millis() wraps around to 0 after about 49 days.
-unsigned long weatherLastTryMs = 0;
-unsigned long weatherWaitMs = 0;  // 0 = fetch as soon as Wi-Fi is up
-unsigned long githubLastTryMs = 0;
-unsigned long githubWaitMs = 0;
 
 // ---------- Wi-Fi and time ----------
 
@@ -154,33 +152,65 @@ void readRoomSensor(unsigned long now) {
   room.readAtMs = now;
 }
 
-// Web requests block for up to a few seconds (longer if the server is slow,
-// capped by HTTP_TIMEOUT_MS). To keep the button and display responsive, this
-// does at most one request per pass through loop().
-void refreshOnlineData(unsigned long now) {
-  if (WiFi.status() != WL_CONNECTED) return;
+// Web requests block for a few seconds (longer if the server is slow, capped by
+// HTTP_TIMEOUT_MS), so they live in this task on core 0. Arduino's loop() runs
+// on core 1 and keeps drawing while a request is in flight.
+//
+// The task fetches into its own copies and only takes the mutex for the quick
+// copy into the shared `weather` and `github`, so loop() never waits on the network.
+void networkTask(void*) {
+  static WeatherData myWeather;
+  static GithubData myGithub;
 
-  if (now - weatherLastTryMs >= weatherWaitMs) {
-    const bool ok = fetchWeather(weather);
-    weatherLastTryMs = millis();
-    weatherWaitMs = ok ? WEATHER_REFRESH_MS : FETCH_RETRY_MS;
-    redrawNow = true;
-    return;
-  }
+  // "When did we last try, and how long until the next try?" for each web source.
+  // Comparing elapsed time (now - last) instead of a target time keeps working
+  // when millis() wraps around to 0 after about 49 days.
+  unsigned long weatherLastTryMs = 0;
+  unsigned long weatherWaitMs = 0;  // 0 = fetch as soon as Wi-Fi is up
+  unsigned long githubLastTryMs = 0;
+  unsigned long githubWaitMs = 0;
 
-  tm unused;
-  const bool clockReady = getClock(unused);  // GitHub's date range needs the real date
-  if (githubHasToken() && clockReady && now - githubLastTryMs >= githubWaitMs) {
-    const bool ok = fetchGithub(github);
-    githubLastTryMs = millis();
-    githubWaitMs = ok ? GITHUB_REFRESH_MS : FETCH_RETRY_MS;
-    redrawNow = true;
+  for (;;) {
+    if (WiFi.status() == WL_CONNECTED) {
+      if (millis() - weatherLastTryMs >= weatherWaitMs) {
+        const bool ok = fetchWeather(myWeather);
+        weatherLastTryMs = millis();
+        weatherWaitMs = ok ? WEATHER_REFRESH_MS : FETCH_RETRY_MS;
+        xSemaphoreTake(dataMutex, portMAX_DELAY);
+        weather = myWeather;
+        xSemaphoreGive(dataMutex);
+        onlineDataChanged = true;
+      }
+
+      tm unused;
+      const bool clockReady = getClock(unused);  // GitHub's date range needs the real date
+      if (githubHasToken() && clockReady && millis() - githubLastTryMs >= githubWaitMs) {
+        const bool ok = fetchGithub(myGithub);
+        githubLastTryMs = millis();
+        githubWaitMs = ok ? GITHUB_REFRESH_MS : FETCH_RETRY_MS;
+        xSemaphoreTake(dataMutex, portMAX_DELAY);
+        github = myGithub;
+        xSemaphoreGive(dataMutex);
+        onlineDataChanged = true;
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(500));
   }
+}
+
+void startNetworkTask() {
+  dataMutex = xSemaphoreCreateMutex();
+  // HTTPS (mbedTLS) needs a big stack; 12 KB leaves room for the JSON parsing too.
+  xTaskCreatePinnedToCore(networkTask, "network", 12 * 1024, nullptr, 1, nullptr, 0);
 }
 
 // ---------- Drawing ----------
 
 void drawCurrentScreen(unsigned long now) {
+  if (onlineDataChanged) {
+    onlineDataChanged = false;
+    redrawNow = true;
+  }
   if (!redrawNow && now - lastDrawMs < DRAW_INTERVAL_MS) return;
   redrawNow = false;
   lastDrawMs = now;
@@ -192,15 +222,23 @@ void drawCurrentScreen(unsigned long now) {
       drawClockScreen(display, status, getClock(localTime) ? &localTime : nullptr);
       break;
     }
-    case SCREEN_WEATHER:
-      drawWeatherScreen(display, status, weather, now);
+    case SCREEN_WEATHER: {
+      xSemaphoreTake(dataMutex, portMAX_DELAY);
+      const WeatherData copy = weather;
+      xSemaphoreGive(dataMutex);
+      drawWeatherScreen(display, status, copy, now);
       break;
+    }
     case SCREEN_ROOM:
       drawRoomScreen(display, status, room, now);
       break;
-    case SCREEN_GITHUB:
-      drawGithubScreen(display, status, github, now);
+    case SCREEN_GITHUB: {
+      xSemaphoreTake(dataMutex, portMAX_DELAY);
+      const GithubData copy = github;
+      xSemaphoreGive(dataMutex);
+      drawGithubScreen(display, status, copy, now);
       break;
+    }
   }
 
   if (toastText != nullptr) {
@@ -233,17 +271,16 @@ void setup() {
 
   WiFi.mode(WIFI_STA);
   startWifi();
+  startNetworkTask();
 
   lastScreenChangeMs = millis();
 }
 
 void loop() {
-  // Each job reads millis() itself, because a web request in an earlier job
-  // may have taken a few seconds.
-  handleButton(millis());
-  rotateScreens(millis());
-  maintainWifi(millis());
-  readRoomSensor(millis());
-  refreshOnlineData(millis());
-  drawCurrentScreen(millis());
+  const unsigned long now = millis();
+  handleButton(now);
+  rotateScreens(now);
+  maintainWifi(now);
+  readRoomSensor(now);
+  drawCurrentScreen(now);
 }
