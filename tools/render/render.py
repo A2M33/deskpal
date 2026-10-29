@@ -37,7 +37,7 @@ SCREENS = [
     ("weather", "Weather"),
     ("room", "Room"),
     ("github", "GitHub"),
-    ("github-no-token", None),
+    ("portal", None),
 ]
 
 # ---------- Look ----------
@@ -106,7 +106,7 @@ def build_and_run(cxx, gfx, json, work):
     # the images always show the default settings from config.h.
     src = work / "src"
     src.mkdir()
-    for name in ("config.h", "github.h", "room.h", "screens.h", "screens.cpp",
+    for name in ("config.h", "settings.h", "github.h", "room.h", "screens.h", "screens.cpp",
                  "weather.h", "weather.cpp"):
         shutil.copy2(SKETCH / name, src / name)
 

@@ -4,7 +4,7 @@ Makes the screen images in `docs/` from the real drawing code, without an ESP32 
 
 `render.py` compiles `deskpal/screens.cpp` and `deskpal/weather.cpp` together with the Adafruit GFX library for your computer. A small fake `Adafruit_SSD1306` (in `host/`) draws into an in-memory 128x64 buffer instead of sending it to the screen, and `host/main.cpp` calls each `draw...Screen()` function with sample data and saves the result. The script then scales each frame up with an OLED look and writes:
 
-- `docs/screen-clock.png`, `screen-weather.png`, `screen-room.png`, `screen-github.png`, `screen-github-no-token.png`
+- `docs/screen-clock.png`, `screen-weather.png`, `screen-room.png`, `screen-github.png`, `screen-portal.png`
 - `docs/screens.png`, the four main screens in a 2x2 grid (used at the top of the main README)
 
 The sample data lives in `host/main.cpp`: 14:32 on Thursday 29 October 2026, 18 °C and partly cloudy in Tehran, 23.4 °C and 41 % in the room, and a made-up 13-week contribution grid.
@@ -37,6 +37,6 @@ Add `--gif` to also write `docs/rotation.gif`: one pass through the rotation at 
 
 ## Notes
 
-- The sketch files are copied before compiling, so your own `secrets.h` is never used. The images always show the defaults from `config.h` (Tehran, `@A2M33`).
-- `githubHasToken()` comes from `host/main.cpp` instead of `github.cpp`, so one run can draw the GitHub screen with and without a token. `github.cpp` itself is not compiled; it needs the real HTTP and Wi-Fi libraries.
+- The sketch files are copied before compiling, so your own `secrets.h` is never used. The images always show the defaults from `config.h` (`@A2M33`, 24-hour clock, °C). The weather title, Tehran, comes from the sample data, because on the device the city comes from the IP lookup.
+- `host/main.cpp` defines the `settings` object that `settings.cpp` provides on the ESP32. `github.cpp`, `settings.cpp`, `portal.cpp` and `deskpal.ino` are not compiled; they need the real Wi-Fi, HTTP, Preferences and WiFiManager libraries and FreeRTOS. `host/WiFi.h` and `host/HTTPClient.h` only exist so `weather.cpp` compiles.
 - If you change how a screen looks, run the script again and commit the new images with the code.

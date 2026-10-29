@@ -9,16 +9,16 @@
 
 #include "config.h"
 #include "screens.h"
+#include "settings.h"
 
 // ---------- Host replacements for the few Arduino/firmware functions used ----------
 
 static unsigned long gNowMs = 0;
 unsigned long millis() { return gNowMs; }
 
-// On the ESP32 this checks the GITHUB_TOKEN compiled in from secrets.h
-// (github.cpp). The renderer flips it to draw both GitHub states.
-static bool gHasToken = true;
-bool githubHasToken() { return gHasToken; }
+// On the ESP32, settings.cpp defines this and fills it from flash. Here it
+// keeps the defaults from config.h (GitHub user A2M33, Wokwi-GUEST).
+Settings settings;
 
 // ---------- Output ----------
 
@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
   weather.tempC = 18.0f;
   weather.windKmh = 9.0f;
   weather.code = 2;
+  strlcpy(weather.place, "Tehran", sizeof(weather.place));  // the city the IP lookup would find
   weather.updatedAtMs = gNowMs - 4 * minute;
   status.screen = SCREEN_WEATHER;
   drawWeatherScreen(display, status, weather, gNowMs);
@@ -131,15 +132,12 @@ int main(int argc, char** argv) {
   fillGithub(github);
   github.updatedAtMs = gNowMs - 12 * minute;
   status.screen = SCREEN_GITHUB;
-  gHasToken = true;
   drawGithubScreen(display, status, github, gNowMs);
   ok &= writePbm(display, out, "github");
 
-  // GitHub before a token is set up.
-  GithubData empty;
-  gHasToken = false;
-  drawGithubScreen(display, status, empty, gNowMs);
-  ok &= writePbm(display, out, "github-no-token");
+  // The setup portal, open after holding the button for 5 seconds.
+  drawPortalScreen(display, PORTAL_AP_NAME);
+  ok &= writePbm(display, out, "portal");
 
   // Frames for the animated GIF (render.py --gif): one pass through the
   // rotation, with the clock ticking for a few seconds. rotation.txt lists
@@ -171,7 +169,6 @@ int main(int argc, char** argv) {
   drawRoomScreen(display, status, room, gNowMs);
   addFrame(2500);
   status.screen = SCREEN_GITHUB;
-  gHasToken = true;
   drawGithubScreen(display, status, github, gNowMs);
   addFrame(2500);
   fclose(list);

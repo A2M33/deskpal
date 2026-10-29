@@ -124,6 +124,8 @@ Replace `COM3` with your port (`/dev/ttyUSB0` or similar on Linux and macOS).
 
 The portal lets you set up deskpal from your phone, without editing code.
 
+<img src="docs/screen-portal.png" alt="The setup screen: join the deskpal-setup Wi-Fi, then open 192.168.4.1" width="400">
+
 1. Hold the button for 5 seconds. The screen shows `Setup` and the name of a new Wi-Fi network, `deskpal-setup`.
 2. Join `deskpal-setup` on your phone or laptop. A setup page opens by itself on most phones. If it doesn't, open `192.168.4.1` in a browser.
 3. Tap **Configure WiFi**, pick your network and type its password.
