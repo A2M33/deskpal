@@ -16,11 +16,45 @@ const char kQuery[] =
     "contributionCalendar{totalContributions weeks{contributionDays{contributionCount weekday}}}"
     "}}}";
 
+// Short reasons for the screen (21 characters fit on a line).
+const char kBadToken[] = "Bad token";
+const char kNoAccess[] = "Token lacks access";
+const char kRateLimited[] = "Rate limited";
+const char kUserNotFound[] = "User not found";
+const char kNoConnection[] = "No connection";
+
 bool fail(GithubData& data, const char* reason) {
   Serial.printf("[github] %s\n", reason);
   strlcpy(data.error, reason, sizeof(data.error));
   data.lastFetchFailed = true;
   return false;
+}
+
+// Turns a failed HTTP status into one of the reasons above.
+const char* httpErrorReason(HTTPClient& http, int status) {
+  if (status < 0) return kNoConnection;  // DNS, TLS, timeout: the request never got an answer
+  if (status == 401) return kBadToken;   // wrong, expired or revoked token
+  if (status == 429) return kRateLimited;
+  if (status == 403) {
+    // GitHub uses 403 both for "slow down" and for "this token may not do that".
+    // The rate limit headers tell them apart.
+    if (http.header("x-ratelimit-remaining") == "0" || http.hasHeader("retry-after")) {
+      return kRateLimited;
+    }
+    return kNoAccess;
+  }
+  if (status >= 500) return "GitHub server error";
+  return nullptr;
+}
+
+// GraphQL reports problems inside a normal 200 reply, with a machine-readable type.
+const char* graphqlErrorReason(const char* type, const char* message) {
+  if (strcmp(type, "NOT_FOUND") == 0) return kUserNotFound;
+  if (strcmp(type, "RATE_LIMITED") == 0) return kRateLimited;
+  if (strcmp(type, "INSUFFICIENT_SCOPES") == 0 || strcmp(type, "FORBIDDEN") == 0) return kNoAccess;
+  if (strstr(message, "rate limit") != nullptr) return kRateLimited;
+  if (strstr(message, "Could not resolve to a User") != nullptr) return kUserNotFound;
+  return "GitHub API error";
 }
 
 }  // namespace
@@ -71,15 +105,17 @@ bool fetchGithub(GithubData& data) {
   http.setUserAgent("deskpal");  // GitHub rejects requests without a User-Agent
   http.addHeader("Authorization", String("bearer ") + GITHUB_TOKEN);
   http.addHeader("Content-Type", "application/json");
+  const char* headersToKeep[] = {"x-ratelimit-remaining", "retry-after"};
+  http.collectHeaders(headersToKeep, 2);
 
   const int status = http.POST(body);
   if (status != HTTP_CODE_OK) {
+    const char* reason = httpErrorReason(http, status);
     http.end();
-    if (status == 401) return fail(data, "Token rejected");
-    if (status < 0) return fail(data, "No connection");
-    char reason[24];
-    snprintf(reason, sizeof(reason), "HTTP %d", status);
-    return fail(data, reason);
+    if (reason != nullptr) return fail(data, reason);
+    char code[24];
+    snprintf(code, sizeof(code), "HTTP %d", status);
+    return fail(data, code);
   }
 
   // Keep only the fields we use. Without a filter, the reply for 13 weeks is
@@ -90,6 +126,7 @@ bool fetchGithub(GithubData& data) {
   calendarFilter["totalContributions"] = true;
   calendarFilter["weeks"][0]["contributionDays"][0]["contributionCount"] = true;
   calendarFilter["weeks"][0]["contributionDays"][0]["weekday"] = true;
+  filter["errors"][0]["type"] = true;
   filter["errors"][0]["message"] = true;
 
   JsonDocument doc;
@@ -99,10 +136,10 @@ bool fetchGithub(GithubData& data) {
   if (err) return fail(data, "Bad reply");
 
   if (doc["data"]["user"].isNull()) {
-    // GraphQL reports problems inside a normal 200 reply.
-    const char* message = doc["errors"][0]["message"] | "unknown";
-    Serial.printf("[github] API error: %s\n", message);
-    return fail(data, "User not found");
+    const char* type = doc["errors"][0]["type"] | "";
+    const char* message = doc["errors"][0]["message"] | "";
+    Serial.printf("[github] API error %s: %s\n", type, message);
+    return fail(data, graphqlErrorReason(type, message));
   }
 
   JsonObject calendar = doc["data"]["user"]["contributionsCollection"]["contributionCalendar"];
