@@ -53,6 +53,8 @@ unsigned long nightWakeStartMs = 0;
 bool wifiWasConnected = false;
 unsigned long wifiDownSinceMs = 0;  // when the connection dropped, or the last full restart
 bool clockStarted = false;
+bool timezoneReady = false;    // a time zone from the weather reply is in effect
+int32_t appliedUtcOffset = 0;
 
 unsigned long lastRoomReadMs = 0;
 bool roomReadOnce = false;
@@ -79,7 +81,10 @@ void maintainWifi(unsigned long now) {
       if (!clockStarted) {
         // Start NTP only once the network exists. After this the ESP32 keeps
         // re-syncing in the background by itself, even across reconnects.
-        configTzTime(TIMEZONE, NTP_SERVER_1, NTP_SERVER_2);
+        // Without a configured TIMEZONE the clock runs on UTC until the first
+        // weather reply brings the local offset (see applyTimezoneFromWeather()).
+        if (timezoneConfigured()) configTzTime(TIMEZONE, NTP_SERVER_1, NTP_SERVER_2);
+        else configTime(0, 0, NTP_SERVER_1, NTP_SERVER_2);
         clockStarted = true;
       }
     }
@@ -100,11 +105,42 @@ void maintainWifi(unsigned long now) {
   }
 }
 
-// Fills `out` with the local time and returns true, or returns false if NTP
-// has not synced yet. (Before syncing, the ESP32 thinks it is 1970.)
+bool timezoneConfigured() { return TIMEZONE[0] != '\0'; }
+
+// True once NTP has synced. (Before syncing, the ESP32 thinks it is 1970.)
+bool clockSynced() {
+  return time(nullptr) >= 1700000000;  // any date before Nov 2023 means "not synced"
+}
+
+// Sets the local time zone from Open-Meteo's UTC offset, unless TIMEZONE is set.
+// Called whenever new weather arrives, so a daylight saving change is picked
+// up within one weather refresh.
+void applyTimezoneFromWeather() {
+  if (timezoneConfigured()) return;
+  xSemaphoreTake(dataMutex, portMAX_DELAY);
+  const bool known = weather.utcOffsetKnown;
+  const int32_t offset = weather.utcOffsetSeconds;
+  xSemaphoreGive(dataMutex);
+  if (!known || (timezoneReady && offset == appliedUtcOffset)) return;
+
+  // POSIX TZ counts hours west of UTC, so UTC+3:30 is written "<+0330>-3:30".
+  const int32_t a = offset < 0 ? -offset : offset;
+  const int hours = a / 3600, minutes = (a % 3600) / 60;
+  char tz[24];
+  snprintf(tz, sizeof(tz), "<%c%02d%02d>%c%d:%02d", offset < 0 ? '-' : '+', hours, minutes,
+           offset < 0 ? '+' : '-', hours, minutes);
+  setenv("TZ", tz, 1);
+  tzset();
+  appliedUtcOffset = offset;
+  timezoneReady = true;
+  Serial.printf("Time zone from weather location: %s\n", tz);
+}
+
+// Fills `out` with the local time and returns true, or returns false while
+// the clock or the time zone is not known yet.
 bool getClock(tm& out) {
+  if (!clockSynced() || !(timezoneReady || timezoneConfigured())) return false;
   const time_t now = time(nullptr);
-  if (now < 1700000000) return false;  // any date before Nov 2023 means "not synced"
   localtime_r(&now, &out);
   return true;
 }
@@ -180,7 +216,25 @@ void readRoomSensor(unsigned long now) {
 //
 // The task fetches into its own copies and only takes the mutex for the quick
 // copy into the shared `weather` and `github`, so loop() never waits on the network.
+// Coordinates from config win. Without them, ask ip-api.com once per boot
+// (again after FETCH_RETRY_MS if that fails). A configured WEATHER_PLACE
+// replaces the city name either way.
+bool resolveLocation(Location& location) {
+  if (!location.known) {
+    if (!isnan(WEATHER_LATITUDE) && !isnan(WEATHER_LONGITUDE)) {
+      location.latitude = WEATHER_LATITUDE;
+      location.longitude = WEATHER_LONGITUDE;
+      location.known = true;
+    } else if (!lookupLocation(location)) {
+      return false;
+    }
+  }
+  if (WEATHER_PLACE[0] != '\0') strlcpy(location.place, WEATHER_PLACE, sizeof(location.place));
+  return true;
+}
+
 void networkTask(void*) {
+  static Location location;
   static WeatherData myWeather;
   static GithubData myGithub;
 
@@ -195,7 +249,9 @@ void networkTask(void*) {
   for (;;) {
     if (WiFi.status() == WL_CONNECTED) {
       if (millis() - weatherLastTryMs >= weatherWaitMs) {
-        const bool ok = fetchWeather(myWeather);
+        bool ok = resolveLocation(location);
+        if (ok) ok = fetchWeather(location, myWeather);
+        else myWeather.lastFetchFailed = true;
         weatherLastTryMs = millis();
         weatherWaitMs = ok ? WEATHER_REFRESH_MS : FETCH_RETRY_MS;
         xSemaphoreTake(dataMutex, portMAX_DELAY);
@@ -204,9 +260,8 @@ void networkTask(void*) {
         onlineDataChanged = true;
       }
 
-      tm unused;
-      const bool clockReady = getClock(unused);  // GitHub's date range needs the real date
-      if (githubHasToken() && clockReady && millis() - githubLastTryMs >= githubWaitMs) {
+      // GitHub's date range needs the real date (in UTC, so no time zone needed).
+      if (githubHasToken() && clockSynced() && millis() - githubLastTryMs >= githubWaitMs) {
         const bool ok = fetchGithub(myGithub);
         githubLastTryMs = millis();
         githubWaitMs = ok ? GITHUB_REFRESH_MS : FETCH_RETRY_MS;
@@ -268,10 +323,6 @@ void updateBrightness(unsigned long now) {
 // ---------- Drawing ----------
 
 void drawCurrentScreen(unsigned long now) {
-  if (onlineDataChanged) {
-    onlineDataChanged = false;
-    redrawNow = true;
-  }
   if (!redrawNow && now - lastDrawMs < DRAW_INTERVAL_MS) return;
   if (brightness == Brightness::Off) return;  // nothing to see, skip the I2C transfer
   redrawNow = false;
@@ -351,6 +402,11 @@ void loop() {
   rotateScreens(now);
   maintainWifi(now);
   readRoomSensor(now);
+  if (onlineDataChanged) {
+    onlineDataChanged = false;
+    applyTimezoneFromWeather();
+    redrawNow = true;
+  }
   updateBrightness(now);
   drawCurrentScreen(now);
 }

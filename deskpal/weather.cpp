@@ -2,16 +2,58 @@
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <WiFi.h>
 #include <WiFiClientSecure.h>
 
 #include "config.h"
 
-bool fetchWeather(WeatherData& data) {
-  char url[220];
+bool lookupLocation(Location& out) {
+  // ip-api.com is free without a key, but only over plain HTTP (HTTPS is for
+  // paying customers). The request carries nothing but the IP address the
+  // server sees anyway; the answer is a city-level guess, fine for weather.
+  WiFiClient client;
+  HTTPClient http;
+  http.useHTTP10(true);
+  http.setConnectTimeout(HTTP_TIMEOUT_MS);
+  http.setTimeout(HTTP_TIMEOUT_MS);
+  if (!http.begin(client, "http://ip-api.com/json/?fields=status,city,lat,lon")) {
+    Serial.println("[location] bad URL");
+    return false;
+  }
+
+  const int status = http.GET();
+  if (status != HTTP_CODE_OK) {
+    Serial.printf("[location] HTTP error %d\n", status);
+    http.end();
+    return false;
+  }
+
+  JsonDocument doc;
+  const DeserializationError err = deserializeJson(doc, http.getStream());
+  http.end();
+  if (err || strcmp(doc["status"] | "", "success") != 0 || !doc["lat"].is<float>()) {
+    Serial.printf("[location] bad reply: %s\n", err ? err.c_str() : "lookup failed");
+    return false;
+  }
+
+  out.latitude = doc["lat"];
+  out.longitude = doc["lon"];
+  strlcpy(out.place, doc["city"] | "", sizeof(out.place));
+  out.known = true;
+  Serial.printf("[location] %s (%.2f, %.2f) from IP address\n", out.place, out.latitude,
+                out.longitude);
+  return true;
+}
+
+bool fetchWeather(const Location& where, WeatherData& data) {
+  // timezone=auto makes Open-Meteo add utc_offset_seconds for the location,
+  // which sets the clock when no TIMEZONE is configured.
+  char url[256];
   snprintf(url, sizeof(url),
            "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
-           "&current=temperature_2m,weather_code,wind_speed_10m&wind_speed_unit=kmh",
-           (double)WEATHER_LATITUDE, (double)WEATHER_LONGITUDE);
+           "&current=temperature_2m,weather_code,wind_speed_10m&wind_speed_unit=kmh"
+           "&timezone=auto",
+           (double)where.latitude, (double)where.longitude);
 
   // The client must outlive the HTTPClient that uses it, so it is declared first.
   WiFiClientSecure client;
@@ -46,6 +88,7 @@ bool fetchWeather(WeatherData& data) {
   filter["current"]["temperature_2m"] = true;
   filter["current"]["weather_code"] = true;
   filter["current"]["wind_speed_10m"] = true;
+  filter["utc_offset_seconds"] = true;
 
   JsonDocument doc;
   const DeserializationError err =
@@ -62,6 +105,9 @@ bool fetchWeather(WeatherData& data) {
   data.tempC = current["temperature_2m"];
   data.code = current["weather_code"] | 0;
   data.windKmh = current["wind_speed_10m"] | 0.0f;
+  data.utcOffsetKnown = doc["utc_offset_seconds"].is<int32_t>();
+  data.utcOffsetSeconds = doc["utc_offset_seconds"] | 0;
+  strlcpy(data.place, where.place, sizeof(data.place));
   data.valid = true;
   data.lastFetchFailed = false;
   data.updatedAtMs = millis();

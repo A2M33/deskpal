@@ -189,7 +189,7 @@ void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTi
 
 void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherData& w,
                        unsigned long nowMs) {
-  drawHeader(d, WEATHER_PLACE, s);
+  drawHeader(d, w.place[0] != '\0' ? w.place : "Weather", s);
 
   if (!w.valid) {
     if (!s.wifiConnected) {

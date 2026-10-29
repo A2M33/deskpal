@@ -24,10 +24,12 @@
 #endif
 
 // ---------- Time ----------
-// POSIX TZ string. "<+0330>-3:30" means "UTC+3:30, no daylight saving" (Tehran).
-// The sign is reversed on purpose: POSIX counts hours *west* of UTC.
+// Empty: use the UTC offset Open-Meteo reports for the weather location
+// (daylight saving included, checked again with every weather update).
+// Or a POSIX TZ string, e.g. "<+0330>-3:30" for "UTC+3:30, no daylight saving"
+// (Tehran). The sign is reversed on purpose: POSIX counts hours *west* of UTC.
 #ifndef TIMEZONE
-#define TIMEZONE "<+0330>-3:30"
+#define TIMEZONE ""
 #endif
 #ifndef NTP_SERVER_1
 #define NTP_SERVER_1 "pool.ntp.org"
@@ -37,14 +39,16 @@
 #endif
 
 // ---------- Weather (Open-Meteo, no key needed) ----------
+// Leave the coordinates unset (NAN) and deskpal looks up the city of your
+// public IP address on ip-api.com. Set both to use a fixed place instead.
 #ifndef WEATHER_LATITUDE
-#define WEATHER_LATITUDE 35.69
+#define WEATHER_LATITUDE NAN
 #endif
 #ifndef WEATHER_LONGITUDE
-#define WEATHER_LONGITUDE 51.39
+#define WEATHER_LONGITUDE NAN
 #endif
 #ifndef WEATHER_PLACE
-#define WEATHER_PLACE "Tehran"  // only used as the screen title
+#define WEATHER_PLACE ""  // screen title; empty = the city from the IP lookup
 #endif
 
 // ---------- GitHub ----------

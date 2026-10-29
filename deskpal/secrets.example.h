@@ -23,13 +23,14 @@
 
 // ---------- Weather location ----------
 // Find your coordinates on a map; decimal degrees, north and east positive.
-// Default: Tehran.
+// Default: unset, so deskpal looks up the city of your IP address on ip-api.com.
 // #define WEATHER_LATITUDE 35.69
 // #define WEATHER_LONGITUDE 51.39
 // #define WEATHER_PLACE "Tehran"      // title on the weather screen, 14 characters max
 
 // ---------- Time zone ----------
-// A POSIX TZ string. Default: "<+0330>-3:30" (Tehran, UTC+3:30, no daylight saving).
+// A POSIX TZ string. Default: unset, so the clock uses the UTC offset that
+// Open-Meteo reports for the weather location (daylight saving included).
 // Note the reversed sign: POSIX counts hours west of UTC. Some examples:
 //   Berlin:   "CET-1CEST,M3.5.0,M10.5.0/3"
 //   London:   "GMT0BST,M3.5.0/1,M10.5.0"
