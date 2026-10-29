@@ -43,6 +43,13 @@
 //   UTC:      "UTC0"
 // #define TIMEZONE "<+0330>-3:30"
 
+// ---------- Display ----------
+// #define CLOCK_12H 1        // "2:32 PM" instead of "14:32"
+// #define TEMP_FAHRENHEIT 1  // degrees Fahrenheit instead of Celsius
+// #define NIGHT_START_HOUR 23
+// #define NIGHT_END_HOUR 7
+// #define NIGHT_MODE NIGHT_OFF  // screen off at night instead of dimmed
+
 // ---------- NTP servers ----------
 // Where the clock gets its time. The defaults are fine almost everywhere.
 // #define NTP_SERVER_1 "pool.ntp.org"

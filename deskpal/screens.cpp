@@ -28,10 +28,13 @@ void printCentered(Adafruit_SSD1306& d, int16_t y, const char* text, uint8_t siz
   printAt(d, x < 0 ? 0 : x, y, text, size);
 }
 
-// "°C" drawn by hand: the default font has no degree sign unless you switch code pages.
-void drawDegreesC(Adafruit_SSD1306& d, int16_t x, int16_t y, uint8_t size) {
+// Temperatures are kept in Celsius and only converted for display.
+float displayTemp(float celsius) { return TEMP_FAHRENHEIT ? celsius * 9 / 5 + 32 : celsius; }
+
+// "°C" or "°F" drawn by hand: the default font has no degree sign unless you switch code pages.
+void drawDegrees(Adafruit_SSD1306& d, int16_t x, int16_t y, uint8_t size) {
   d.drawCircle(x + size, y + size, size, SSD1306_WHITE);
-  printAt(d, x + 2 * size + 2, y, "C", size);
+  printAt(d, x + 2 * size + 2, y, TEMP_FAHRENHEIT ? "F" : "C", size);
 }
 
 void formatAge(unsigned long ageMs, char* out, size_t len) {
@@ -96,6 +99,16 @@ void drawConnecting(Adafruit_SSD1306& d) {
 
 // ---------- Weather icons (each fits a 24x24 box at x, y) ----------
 
+// A sun of the given radius with 8 short rays around it, centred on cx, cy.
+void drawSunAt(Adafruit_SSD1306& d, int16_t cx, int16_t cy, int16_t r) {
+  d.fillCircle(cx, cy, r, SSD1306_WHITE);
+  for (int i = 0; i < 8; i++) {  // 8 rays, 45 degrees apart
+    const float a = i * PI / 4;
+    d.drawLine(cx + cosf(a) * (r + 2), cy + sinf(a) * (r + 2), cx + cosf(a) * (r + 4),
+               cy + sinf(a) * (r + 4), SSD1306_WHITE);
+  }
+}
+
 void drawSun(Adafruit_SSD1306& d, int16_t x, int16_t y) {
   const int16_t cx = x + 12, cy = y + 12;
   d.fillCircle(cx, cy, 5, SSD1306_WHITE);
@@ -106,18 +119,27 @@ void drawSun(Adafruit_SSD1306& d, int16_t x, int16_t y) {
   }
 }
 
-// A cloud 14 px tall: three overlapping circles on a flat base.
-void drawCloud(Adafruit_SSD1306& d, int16_t x, int16_t y) {
-  d.fillCircle(x + 6, y + 9, 4, SSD1306_WHITE);
-  d.fillCircle(x + 12, y + 6, 6, SSD1306_WHITE);
-  d.fillCircle(x + 18, y + 9, 4, SSD1306_WHITE);
-  d.fillRect(x + 6, y + 9, 12, 5, SSD1306_WHITE);
+// A cloud 14 px tall: three overlapping circles on a flat base. `grow` makes
+// it that many pixels bigger all round (used to cut an outline).
+void drawCloud(Adafruit_SSD1306& d, int16_t x, int16_t y, uint16_t color = SSD1306_WHITE,
+               int16_t grow = 0) {
+  d.fillCircle(x + 6, y + 9, 4 + grow, color);
+  d.fillCircle(x + 12, y + 6, 6 + grow, color);
+  d.fillCircle(x + 18, y + 9, 4 + grow, color);
+  d.fillRect(x + 6 - grow, y + 9, 12 + 2 * grow, 5 + grow, color);
 }
 
 void drawWeatherIcon(Adafruit_SSD1306& d, int16_t x, int16_t y, WeatherIcon icon) {
   switch (icon) {
     case WeatherIcon::Sun:
       drawSun(d, x, y);
+      break;
+    case WeatherIcon::PartCloud:
+      // Sun at the top right, cloud in front of it at the bottom left. The
+      // cloud is first drawn 1 px bigger in black, so a dark gap separates the two.
+      drawSunAt(d, x + 16, y + 8, 4);
+      drawCloud(d, x - 1, y + 8, SSD1306_BLACK, 1);
+      drawCloud(d, x - 1, y + 8);
       break;
     case WeatherIcon::Cloud:
       drawCloud(d, x, y + 5);
@@ -179,12 +201,18 @@ void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTi
   char hhmm[6];
   char seconds[3];
   char date[20];
-  strftime(hhmm, sizeof(hhmm), "%H:%M", localTime);
+  if (CLOCK_12H) {
+    const int hour = localTime->tm_hour % 12 == 0 ? 12 : localTime->tm_hour % 12;
+    snprintf(hhmm, sizeof(hhmm), "%2d:%02d", hour, localTime->tm_min);  // " 2:32" keeps the layout
+  } else {
+    strftime(hhmm, sizeof(hhmm), "%H:%M", localTime);
+  }
   strftime(seconds, sizeof(seconds), "%S", localTime);
   strftime(date, sizeof(date), "%a %d %b %Y", localTime);
 
   printAt(d, 7, 16, hhmm, 3);      // big HH:MM
   printAt(d, 99, 24, seconds, 2);  // smaller seconds, bottom-aligned with it
+  if (CLOCK_12H) printAt(d, 105, 15, localTime->tm_hour < 12 ? "AM" : "PM");  // above the seconds
   printCentered(d, 52, date);
 }
 
@@ -207,9 +235,9 @@ void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherDa
   drawWeatherIcon(d, 2, 14, weatherIcon(w.code));
 
   char temp[10];
-  snprintf(temp, sizeof(temp), "%.1f", w.tempC);
+  snprintf(temp, sizeof(temp), "%.1f", displayTemp(w.tempC));
   printAt(d, 32, 14, temp, 2);
-  drawDegreesC(d, 32 + textWidth(temp, 2) + 3, 14, 2);
+  drawDegrees(d, 32 + textWidth(temp, 2) + 3, 14, 2);
 
   printAt(d, 32, 33, weatherText(w.code));
 
@@ -238,11 +266,11 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
 
   char temp[10];
   char humidity[8];
-  snprintf(temp, sizeof(temp), "%.1f", r.tempC);
+  snprintf(temp, sizeof(temp), "%.1f", displayTemp(r.tempC));
   snprintf(humidity, sizeof(humidity), "%.0f%%", r.humidity);
 
   printAt(d, 4, 16, temp, 2);
-  drawDegreesC(d, 4 + textWidth(temp, 2) + 3, 16, 2);
+  drawDegrees(d, 4 + textWidth(temp, 2) + 3, 16, 2);
   printAt(d, 124 - textWidth(humidity, 2), 16, humidity, 2);
 
   printAt(d, 4, 34, "temp");

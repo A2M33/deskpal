@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-enum class WeatherIcon { Sun, Cloud, Rain, Snow };
+enum class WeatherIcon { Sun, PartCloud, Cloud, Rain, Snow };
 
 // Where to get the weather for.
 struct Location {

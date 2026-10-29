@@ -152,7 +152,8 @@ const char* weatherText(int code) {
 
 WeatherIcon weatherIcon(int code) {
   if (code <= 1) return WeatherIcon::Sun;
-  if (code <= 48) return WeatherIcon::Cloud;  // cloudy and fog
+  if (code == 2) return WeatherIcon::PartCloud;  // partly cloudy
+  if (code <= 48) return WeatherIcon::Cloud;     // overcast and fog
   if ((code >= 71 && code <= 77) || code == 85 || code == 86) return WeatherIcon::Snow;
   return WeatherIcon::Rain;                   // drizzle, rain, showers, storms
 }

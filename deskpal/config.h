@@ -63,6 +63,14 @@
 #define GITHUB_TOKEN ""  // empty = read the public contributions page instead of the API
 #endif
 
+// ---------- Display units ----------
+#ifndef CLOCK_12H
+#define CLOCK_12H 0  // 1 = "2:32 PM" instead of "14:32"
+#endif
+#ifndef TEMP_FAHRENHEIT
+#define TEMP_FAHRENHEIT 0  // 1 = degrees Fahrenheit on the weather and room screens
+#endif
+
 // ---------- Setup portal ----------
 // Name of the open Wi-Fi network deskpal creates for setup.
 #ifndef PORTAL_AP_NAME
