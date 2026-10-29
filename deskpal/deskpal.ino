@@ -2,7 +2,8 @@
 //
 // Four screens on a 128x64 OLED: clock, weather, room climate and a GitHub
 // contribution grid. They rotate every 8 seconds. A short button press jumps to
-// the next screen, a long press pauses or resumes the rotation.
+// the next screen, a 1-second press pauses or resumes the rotation, and holding
+// the button for 5 seconds opens the setup portal (portal.h).
 //
 // loop() never waits with delay(). Each job checks millis() to see whether it
 // is its turn, does a small piece of work and returns. Web requests can take
@@ -19,13 +20,15 @@
 #include "button.h"
 #include "config.h"
 #include "github.h"
+#include "portal.h"
 #include "room.h"
 #include "screens.h"
+#include "settings.h"
 #include "weather.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);  // -1: no reset pin
 DHT dht(PIN_DHT, DHT22);
-Button button(PIN_BUTTON, LONG_PRESS_MS);
+Button button(PIN_BUTTON, LONG_PRESS_MS, PORTAL_HOLD_MS);
 
 RoomReading room;
 
@@ -51,6 +54,8 @@ bool nightWake = false;  // screen woken by the button during NIGHT_OFF hours
 unsigned long nightWakeStartMs = 0;
 
 bool wifiWasConnected = false;
+bool wifiEverConnected = false;  // since boot
+bool autoPortalDone = false;     // the portal opens by itself at most once per boot
 unsigned long wifiDownSinceMs = 0;  // when the connection dropped, or the last full restart
 bool clockStarted = false;
 bool timezoneReady = false;    // a time zone from the weather reply is in effect
@@ -61,22 +66,28 @@ bool roomReadOnce = false;
 
 // ---------- Wi-Fi and time ----------
 
+// The simulator's network. The portal never opens by itself there: Wokwi
+// cannot join the portal's network, and Wokwi-GUEST needs no setup anyway.
+bool onWokwiGuest() { return strcmp(settings.wifiSsid, "Wokwi-GUEST") == 0; }
+
 void startWifi() {
   wifiDownSinceMs = millis();
+  if (settings.wifiSsid[0] == '\0') return;  // nothing to join yet; the portal will open
   // After a drop, the ESP32 Wi-Fi driver reconnects by itself. maintainWifi()
   // only steps in if that has not worked for WIFI_RESTART_MS.
   WiFi.setAutoReconnect(true);
   // Wokwi's virtual access point is on channel 6. Saying so up front skips a
   // scan of every channel and connects much faster. 0 means "scan all".
-  const int32_t channel = strcmp(WIFI_SSID, "Wokwi-GUEST") == 0 ? 6 : 0;
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, channel);
-  Serial.printf("Connecting to Wi-Fi \"%s\"...\n", WIFI_SSID);
+  const int32_t channel = onWokwiGuest() ? 6 : 0;
+  WiFi.begin(settings.wifiSsid, settings.wifiPassword, channel);
+  Serial.printf("Connecting to Wi-Fi \"%s\"...\n", settings.wifiSsid);
 }
 
 void maintainWifi(unsigned long now) {
   if (WiFi.status() == WL_CONNECTED) {
     if (!wifiWasConnected) {
       wifiWasConnected = true;
+      wifiEverConnected = true;
       Serial.printf("Wi-Fi connected, IP %s\n", WiFi.localIP().toString().c_str());
       if (!clockStarted) {
         // Start NTP only once the network exists. After this the ESP32 keeps
@@ -91,11 +102,24 @@ void maintainWifi(unsigned long now) {
     return;
   }
 
+  if (portalActive()) return;  // the portal manages Wi-Fi while it is open
+
   if (wifiWasConnected) {
     wifiWasConnected = false;
     wifiDownSinceMs = now;
     Serial.println("Wi-Fi lost, reconnecting");
   }
+
+  // First setup, or the saved network is gone: open the portal by itself,
+  // once per boot. A drop after a good connection only reconnects.
+  const bool noNetwork = settings.wifiSsid[0] == '\0';
+  if (!wifiEverConnected && !autoPortalDone && !onWokwiGuest() &&
+      (noNetwork || now >= PORTAL_AFTER_MS)) {
+    autoPortalDone = true;
+    startPortal();
+    return;
+  }
+
   // Calling WiFi.disconnect() here on every drop would cancel the driver's own
   // reconnect. Only start over from scratch after a long outage.
   if (now - wifiDownSinceMs >= WIFI_RESTART_MS) {
@@ -177,6 +201,10 @@ void handleButton(unsigned long now) {
       lastScreenChangeMs = now;  // a full 8 s on this screen after resuming
       showToast(rotationPaused ? "Paused" : "Auto-rotate on", now);
       break;
+    case ButtonEvent::Hold:
+      startPortal();
+      redrawNow = true;
+      break;
     case ButtonEvent::None:
       break;
   }
@@ -210,14 +238,14 @@ void readRoomSensor(unsigned long now) {
   room.readAtMs = now;
 }
 
-// Coordinates from config win. Without them, ask ip-api.com once per boot
+// Coordinates from the portal or config win. Without them, ask ip-api.com once per boot
 // (again after FETCH_RETRY_MS if that fails). A configured WEATHER_PLACE
 // replaces the city name either way.
 bool resolveLocation(Location& location) {
   if (!location.known) {
-    if (!isnan(WEATHER_LATITUDE) && !isnan(WEATHER_LONGITUDE)) {
-      location.latitude = WEATHER_LATITUDE;
-      location.longitude = WEATHER_LONGITUDE;
+    if (!isnan(settings.latitude) && !isnan(settings.longitude)) {
+      location.latitude = settings.latitude;
+      location.longitude = settings.longitude;
       location.known = true;
     } else if (!lookupLocation(location)) {
       return false;
@@ -331,7 +359,9 @@ void drawCurrentScreen(unsigned long now) {
   lastDrawMs = now;
 
   const StatusInfo status = {currentScreen, WiFi.status() == WL_CONNECTED, rotationPaused};
-  switch (currentScreen) {
+  if (portalActive()) {
+    drawPortalScreen(display, PORTAL_AP_NAME);
+  } else switch (currentScreen) {
     case SCREEN_CLOCK: {
       tm localTime;
       drawClockScreen(display, status, getClock(localTime) ? &localTime : nullptr);
@@ -391,6 +421,7 @@ void setup() {
   dht.begin();
   button.begin();
 
+  loadSettings();
   WiFi.mode(WIFI_STA);
   startWifi();
   startNetworkTask();
@@ -400,6 +431,7 @@ void setup() {
 
 void loop() {
   const unsigned long now = millis();
+  updatePortal();
   handleButton(now);
   rotateScreens(now);
   maintainWifi(now);

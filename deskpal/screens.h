@@ -31,6 +31,9 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
 // Small inverted message box drawn on top of whatever screen is showing.
 void drawToast(Adafruit_SSD1306& d, const char* text);
 
+// Shown while the setup portal is open: which Wi-Fi to join and where to go.
+void drawPortalScreen(Adafruit_SSD1306& d, const char* apName);
+
 // Moves the finished frame right by dx and down by dy pixels (0 or 1 each),
 // for burn-in protection. Every screen leaves the last column and row free,
 // so nothing important falls off the edge.

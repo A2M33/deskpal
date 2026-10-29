@@ -6,6 +6,10 @@
 // secrets.h instead, which git ignores. Copy secrets.example.h to secrets.h
 // and edit it. Anything defined there wins, because each default below is
 // only used when the name is not defined yet.
+//
+// Wi-Fi, GitHub user and token, and the coordinates can also be set later in
+// the setup portal (hold the button 5 seconds). What the portal saves wins
+// over these defaults; see settings.h.
 
 #include <Arduino.h>
 
@@ -56,7 +60,13 @@
 #define GITHUB_USER "A2M33"
 #endif
 #ifndef GITHUB_TOKEN
-#define GITHUB_TOKEN ""  // empty = the GitHub screen shows setup instructions
+#define GITHUB_TOKEN ""  // empty = read the public contributions page instead of the API
+#endif
+
+// ---------- Setup portal ----------
+// Name of the open Wi-Fi network deskpal creates for setup.
+#ifndef PORTAL_AP_NAME
+#define PORTAL_AP_NAME "deskpal-setup"
 #endif
 
 // ---------- Night mode ----------
@@ -96,6 +106,9 @@ constexpr int16_t SCREEN_HEIGHT = 64;
 // ---------- Timing (all in milliseconds) ----------
 constexpr unsigned long SCREEN_ROTATE_MS = 8000;
 constexpr unsigned long LONG_PRESS_MS = 800;
+constexpr unsigned long PORTAL_HOLD_MS = 5000;     // hold the button this long to open the portal
+constexpr unsigned long PORTAL_AFTER_MS = 30000;   // no Wi-Fi this long after boot: open the portal
+constexpr unsigned long PORTAL_TIMEOUT_MS = 5UL * 60 * 1000;  // then restart if nothing was saved
 constexpr unsigned long TOAST_MS = 1200;           // "Paused" / "Auto-rotate" message
 constexpr unsigned long NIGHT_WAKE_MS = 30000;     // screen on after a press, with NIGHT_OFF
 constexpr unsigned long PIXEL_SHIFT_MS = 60000;    // how often the picture moves by 1 px

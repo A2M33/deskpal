@@ -21,5 +21,6 @@ jobs:
             - name: DHT sensor library
             - name: Adafruit Unified Sensor
             - name: ArduinoJson
+            - name: WiFiManager
           sketch-paths: |
             - deskpal

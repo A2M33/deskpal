@@ -7,3 +7,4 @@ Adafruit BusIO
 DHT sensor library
 Adafruit Unified Sensor
 ArduinoJson
+WiFiManager

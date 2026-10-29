@@ -9,6 +9,7 @@
 #include <new>
 
 #include "config.h"
+#include "settings.h"
 
 namespace {
 
@@ -194,7 +195,8 @@ class CalendarParser {
 
 bool fetchPublicCalendar(GithubData& data) {
   char url[96];
-  snprintf(url, sizeof(url), "https://github.com/users/%s/contributions", GITHUB_USER);
+  snprintf(url, sizeof(url), "https://github.com/users/%s/contributions",
+           settings.githubUser);
 
   WiFiClientSecure client;
   client.setInsecure();  // see weather.cpp and the README
@@ -292,9 +294,10 @@ bool fetchPublicCalendar(GithubData& data) {
 
 }  // namespace
 
-bool githubHasToken() { return GITHUB_TOKEN[0] != '\0'; }
+bool githubHasToken() { return settings.githubToken[0] != '\0'; }
 
 bool fetchGithub(GithubData& data) {
+  if (settings.githubUser[0] == '\0') return fail(data, "No user set");
   if (!githubHasToken()) return fetchPublicCalendar(data);
 
   // The date range is built from the real clock, so NTP must have synced.
@@ -320,7 +323,7 @@ bool fetchGithub(GithubData& data) {
   {
     JsonDocument request;
     request["query"] = kQuery;
-    request["variables"]["login"] = GITHUB_USER;
+    request["variables"]["login"] = settings.githubUser;
     request["variables"]["from"] = from;
     request["variables"]["to"] = to;
     serializeJson(request, body);
@@ -336,7 +339,7 @@ bool fetchGithub(GithubData& data) {
   if (!http.begin(client, "https://api.github.com/graphql")) return fail(data, "Bad URL");
 
   http.setUserAgent("deskpal");  // GitHub rejects requests without a User-Agent
-  http.addHeader("Authorization", String("bearer ") + GITHUB_TOKEN);
+  http.addHeader("Authorization", String("bearer ") + settings.githubToken);
   http.addHeader("Content-Type", "application/json");
   const char* headersToKeep[] = {"x-ratelimit-remaining", "retry-after"};
   http.collectHeaders(headersToKeep, 2);

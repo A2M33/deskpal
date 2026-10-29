@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "config.h"
+#include "settings.h"
 
 namespace {
 
@@ -86,7 +87,7 @@ void drawHeader(Adafruit_SSD1306& d, const char* title, const StatusInfo& s) {
 void drawConnecting(Adafruit_SSD1306& d) {
   printCentered(d, 22, "Connecting to Wi-Fi");
   char ssid[22];
-  strlcpy(ssid, WIFI_SSID, sizeof(ssid));
+  strlcpy(ssid, settings.wifiSsid, sizeof(ssid));
   printCentered(d, 34, ssid);
   // Dots that grow and reset, so it is obvious the device has not frozen.
   static const char* const kDots[] = {"", ".", "..", "..."};
@@ -266,7 +267,7 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
 void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData& g,
                       unsigned long nowMs) {
   char title[20];
-  snprintf(title, sizeof(title), "@%s", GITHUB_USER);
+  snprintf(title, sizeof(title), "@%s", settings.githubUser);
   drawHeader(d, title, s);
 
   if (!g.valid) {
@@ -304,6 +305,20 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
   formatAgeShort(nowMs - g.updatedAtMs, age, sizeof(age));
   snprintf(line, sizeof(line), g.lastFetchFailed ? "!%s" : "%s", age);
   printAt(d, panelX, 54, line);
+}
+
+void drawPortalScreen(Adafruit_SSD1306& d, const char* apName) {
+  d.clearDisplay();
+  d.setTextColor(SSD1306_WHITE);
+  d.setTextWrap(false);
+  printAt(d, 0, 0, "Setup");
+  d.drawFastHLine(0, 9, SCREEN_WIDTH, SSD1306_WHITE);
+  printCentered(d, 14, "Join this Wi-Fi:");
+  char name[22];
+  strlcpy(name, apName, sizeof(name));
+  printCentered(d, 26, name);
+  printCentered(d, 40, "then open");
+  printCentered(d, 50, "192.168.4.1");
 }
 
 void shiftFrame(Adafruit_SSD1306& d, int8_t dx, int8_t dy) {

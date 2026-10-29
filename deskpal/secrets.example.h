@@ -5,6 +5,10 @@
 //
 // Every line is optional. Delete or comment out a line to use the default
 // from config.h instead.
+//
+// You can skip this file entirely: the setup portal (hold the button for
+// 5 seconds) sets Wi-Fi, GitHub and location on the device. Values saved
+// there win over the ones here.
 
 // ---------- Wi-Fi ----------
 // Your network name and password. Default: the open "Wokwi-GUEST" network
@@ -16,10 +20,11 @@
 // Whose contribution grid to show. Default: "A2M33".
 #define GITHUB_USER "your-github-username"
 
-// Personal access token, needed for the GitHub screen (the README explains
-// how to make one). A fine-grained token with read-only access to public
-// repositories is enough. Default: empty, which shows a setup hint instead.
-#define GITHUB_TOKEN "github_pat_xxxxxxxxxxxxxxxxxxxxxx"
+// Personal access token, optional (the README explains how to make one).
+// Without it, deskpal reads your public contributions page instead. A
+// fine-grained token with read-only access to public repositories is enough.
+// Default: empty.
+// #define GITHUB_TOKEN "github_pat_xxxxxxxxxxxxxxxxxxxxxx"
 
 // ---------- Weather location ----------
 // Find your coordinates on a map; decimal degrees, north and east positive.

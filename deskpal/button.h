@@ -2,13 +2,16 @@
 
 #include <Arduino.h>
 
-enum class ButtonEvent { None, ShortPress, LongPress };
+// ShortPress: tap. LongPress: held for longPressMs, then released.
+// Hold: still held after holdMs (fires once, without waiting for release).
+enum class ButtonEvent { None, ShortPress, LongPress, Hold };
 
 // A push button wired between a GPIO pin and GND.
 // The internal pull-up resistor keeps the pin HIGH, so it reads LOW while pressed.
 class Button {
  public:
-  Button(uint8_t pin, unsigned long longPressMs) : pin_(pin), longPressMs_(longPressMs) {}
+  Button(uint8_t pin, unsigned long longPressMs, unsigned long holdMs)
+      : pin_(pin), longPressMs_(longPressMs), holdMs_(holdMs) {}
 
   void begin() { pinMode(pin_, INPUT_PULLUP); }
 
@@ -28,15 +31,17 @@ class Button {
       pressed_ = reading;
       if (pressed_) {
         pressStartMs_ = now;
-        longPressSent_ = false;
-      } else if (!longPressSent_) {
-        // Short press fires on release, so a long press never also counts as a short one.
-        return ButtonEvent::ShortPress;
+        holdSent_ = false;
+        return ButtonEvent::None;
       }
-    } else if (pressed_ && !longPressSent_ && now - pressStartMs_ >= longPressMs_) {
-      // Long press fires while still held, so you see the result without letting go.
-      longPressSent_ = true;
-      return ButtonEvent::LongPress;
+      // Short and long press fire on release, because until then the press
+      // could still turn into a Hold. A Hold never also counts as a press.
+      if (holdSent_) return ButtonEvent::None;
+      return now - pressStartMs_ >= longPressMs_ ? ButtonEvent::LongPress : ButtonEvent::ShortPress;
+    }
+    if (pressed_ && !holdSent_ && now - pressStartMs_ >= holdMs_) {
+      holdSent_ = true;
+      return ButtonEvent::Hold;
     }
     return ButtonEvent::None;
   }
@@ -46,9 +51,10 @@ class Button {
 
   uint8_t pin_;
   unsigned long longPressMs_;
+  unsigned long holdMs_;
   bool lastReading_ = false;
   bool pressed_ = false;
-  bool longPressSent_ = false;
+  bool holdSent_ = false;
   unsigned long lastChangeMs_ = 0;
   unsigned long pressStartMs_ = 0;
 };
