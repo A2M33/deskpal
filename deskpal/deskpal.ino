@@ -46,7 +46,7 @@ const char* toastText = nullptr;
 unsigned long toastStartMs = 0;
 
 bool wifiWasConnected = false;
-unsigned long lastWifiAttemptMs = 0;
+unsigned long wifiDownSinceMs = 0;  // when the connection dropped, or the last full restart
 bool clockStarted = false;
 
 unsigned long lastRoomReadMs = 0;
@@ -55,8 +55,10 @@ bool roomReadOnce = false;
 // ---------- Wi-Fi and time ----------
 
 void startWifi() {
-  lastWifiAttemptMs = millis();
-  WiFi.disconnect();
+  wifiDownSinceMs = millis();
+  // After a drop, the ESP32 Wi-Fi driver reconnects by itself. maintainWifi()
+  // only steps in if that has not worked for WIFI_RESTART_MS.
+  WiFi.setAutoReconnect(true);
   // Wokwi's virtual access point is on channel 6. Saying so up front skips a
   // scan of every channel and connects much faster. 0 means "scan all".
   const int32_t channel = strcmp(WIFI_SSID, "Wokwi-GUEST") == 0 ? 6 : 0;
@@ -81,9 +83,16 @@ void maintainWifi(unsigned long now) {
 
   if (wifiWasConnected) {
     wifiWasConnected = false;
-    Serial.println("Wi-Fi lost, will retry");
+    wifiDownSinceMs = now;
+    Serial.println("Wi-Fi lost, reconnecting");
   }
-  if (now - lastWifiAttemptMs >= WIFI_RETRY_MS) startWifi();
+  // Calling WiFi.disconnect() here on every drop would cancel the driver's own
+  // reconnect. Only start over from scratch after a long outage.
+  if (now - wifiDownSinceMs >= WIFI_RESTART_MS) {
+    Serial.println("Wi-Fi still down, starting the connection over");
+    WiFi.disconnect();
+    startWifi();
+  }
 }
 
 // Fills `out` with the local time and returns true, or returns false if NTP
