@@ -3,7 +3,8 @@
 
 Compiles the real drawing code (deskpal/screens.cpp, deskpal/weather.cpp) and
 Adafruit GFX for this computer, runs it with sample data, and turns the
-128x64 frame buffers into OLED-looking PNGs in docs/.
+128x64 frame buffers into OLED-looking PNGs in docs/. With --gif it also
+writes docs/rotation.gif, an animated pass through the screens.
 
 Needs: Python 3.10+ with Pillow, a C++17 compiler (g++, clang++, or the
 `ziglang` pip package), and the Adafruit GFX and ArduinoJson libraries as
@@ -210,11 +211,33 @@ def combined(tiles):
     return img
 
 
+def rotation_gif(frames, path):
+    """One pass through the screen rotation as an animated GIF, at half size.
+
+    GIF has no partial transparency, so the tiles sit on the card colour, and
+    all frames share one palette so the colours don't flicker between screens.
+    """
+    entries = [line.split() for line in (frames / "rotation.txt").read_text().splitlines() if line]
+    images, durations = [], []
+    for name, ms in entries:
+        tile = oled_tile(read_pbm(frames / f"{name}.pbm"))
+        flat = Image.new("RGB", tile.size, CARD)
+        flat.paste(tile, (0, 0), tile)
+        images.append(flat.resize((flat.width // 2, flat.height // 2), Image.LANCZOS))
+        durations.append(int(ms))
+    palette = images[0].quantize(colors=64, method=Image.Quantize.MEDIANCUT)
+    frames_p = [img.quantize(palette=palette, dither=Image.Dither.NONE) for img in images]
+    frames_p[0].save(path, save_all=True, append_images=frames_p[1:], duration=durations,
+                     loop=0, optimize=True, disposal=1)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--libraries", help="Arduino libraries folder with Adafruit GFX and ArduinoJson")
     parser.add_argument("--cxx", help='C++ compiler command, e.g. "g++" or "zig c++"')
     parser.add_argument("--out", default=str(DOCS), help="output folder (default: docs/)")
+    parser.add_argument("--gif", action="store_true",
+                        help="also write rotation.gif, an animated pass through the screens")
     args = parser.parse_args()
 
     gfx, json = find_libraries(args.libraries)
@@ -233,6 +256,10 @@ def main():
             print("wrote", path)
             if label:
                 tiles.append((label, tile))
+        if args.gif:
+            path = out / "rotation.gif"
+            rotation_gif(frames, path)
+            print("wrote", path)
 
     path = out / "screens.png"
     combined(tiles).save(path, optimize=True)

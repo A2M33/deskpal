@@ -141,5 +141,40 @@ int main(int argc, char** argv) {
   drawGithubScreen(display, status, empty, gNowMs);
   ok &= writePbm(display, out, "github-no-token");
 
+  // Frames for the animated GIF (render.py --gif): one pass through the
+  // rotation, with the clock ticking for a few seconds. rotation.txt lists
+  // each frame and how long it stays up, in milliseconds.
+  char listPath[1024];
+  snprintf(listPath, sizeof(listPath), "%s/rotation.txt", out);
+  FILE* list = fopen(listPath, "w");
+  if (list == nullptr) {
+    fprintf(stderr, "cannot write %s\n", listPath);
+    return 1;
+  }
+  int frame = 0;
+  auto addFrame = [&](unsigned ms) {
+    char name[32];
+    snprintf(name, sizeof(name), "rotation-%02d", frame++);
+    ok &= writePbm(display, out, name);
+    fprintf(list, "%s %u\n", name, ms);
+  };
+  status.screen = SCREEN_CLOCK;
+  for (int second = 7; second <= 10; second++) {
+    local.tm_sec = second;
+    drawClockScreen(display, status, &local);
+    addFrame(1000);
+  }
+  status.screen = SCREEN_WEATHER;
+  drawWeatherScreen(display, status, weather, gNowMs);
+  addFrame(2500);
+  status.screen = SCREEN_ROOM;
+  drawRoomScreen(display, status, room, gNowMs);
+  addFrame(2500);
+  status.screen = SCREEN_GITHUB;
+  gHasToken = true;
+  drawGithubScreen(display, status, github, gNowMs);
+  addFrame(2500);
+  fclose(list);
+
   return ok ? 0 : 1;
 }

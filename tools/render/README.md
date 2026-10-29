@@ -25,7 +25,15 @@ python -m venv ../deskpal-render-venv                  # outside the repo
 
 The script looks for the libraries in `$ARDUINO_DIRECTORIES_USER/libraries`, then `~/Documents/Arduino/libraries` and `~/Arduino/libraries`. If yours are elsewhere, pass `--libraries <folder>`. Use `--cxx "<command>"` to pick a compiler.
 
-The build happens in a temporary folder that is deleted afterwards. Only the PNGs in `docs/` change.
+The build happens in a temporary folder that is deleted afterwards. Only the images in `docs/` change.
+
+### Animated GIF
+
+Add `--gif` to also write `docs/rotation.gif`: one pass through the rotation at half size, with the clock ticking for four seconds and then weather, room and GitHub for 2.5 seconds each. `host/main.cpp` draws the frames and lists them with their durations in `rotation.txt`; change the timing there. The GIF is optional, and the script skips it unless you pass the flag.
+
+```sh
+../deskpal-render-venv/bin/python tools/render/render.py --gif
+```
 
 ## Notes
 
