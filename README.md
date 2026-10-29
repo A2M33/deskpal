@@ -1,12 +1,19 @@
-# deskpal
+<p align="center"><img src="docs/header.svg" alt="deskpal" width="100%"></p>
+
+<p align="center">
+  <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://github.com/A2M33/deskpal/actions/workflows/build.yml/badge.svg"></a>
+  <img alt="ESP32" src="https://img.shields.io/badge/board-ESP32-e7352c">
+  <img alt="Runs in Wokwi" src="https://img.shields.io/badge/simulator-Wokwi-6e2bc2">
+  <a href="https://github.com/A2M33/deskpal/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-3fb950"></a>
+</p>
 
 A small desk display built on an ESP32. It shows the time, the weather outside, the temperature and humidity in your room, and your recent GitHub activity on a 0.96" OLED screen.
 
 An ESP32 is a cheap microcontroller board (around $5) with Wi-Fi built in. You program it from your computer over USB, and it runs your code on its own as soon as it gets power.
 
-<!-- Photo or GIF goes here, e.g.:
-![deskpal on my desk](docs/deskpal.gif)
--->
+![The four deskpal screens: clock, weather, room and GitHub](docs/screens.png)
+
+I rendered these on my PC from the drawing code in `deskpal/screens.cpp`, so they match the OLED pixel for pixel. `tools/render` has the script.
 
 ## What it shows
 
@@ -47,7 +54,7 @@ Prices are rough, from the usual online electronics shops.
 | DHT22 (AM2302) sensor | A module on a small board saves you a resistor | $3-6 |
 | Push button | Any small tactile switch | $0.10 |
 | Breadboard and jumper wires | | $5 |
-| USB cable | Must carry data, not just power | |
+| USB cable | One that carries data; some cables only charge | |
 
 Total: about $20.
 
@@ -123,7 +130,7 @@ deskpal fetches the weather and GitHub data over HTTPS, but it skips checking th
 
 **The Room screen says "No sensor reading".** Check the DHT22's data wire on GPIO 15 and its power. A bare sensor needs the 10 kΩ pull-up resistor described above.
 
-**The clock is off by a few hours.** Your `TIMEZONE` string is probably wrong. POSIX time zones flip the sign, so UTC+1 is written `-1`. `secrets.example.h` lists a few examples.
+**The clock is off by a few hours.** Check your `TIMEZONE` string. POSIX time zones flip the sign, so UTC+1 is written `-1`. `secrets.example.h` lists a few examples.
 
 **The GitHub screen says "Token rejected".** The token expired or has a typo. Make a new one.
 

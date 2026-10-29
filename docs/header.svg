@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="210" viewBox="0 0 900 210" role="img" aria-label="deskpal: Clock, weather, room and GitHub on a tiny OLED.">
+  <rect width="900" height="210" rx="14" fill="#0d1117"/>
+  <rect x="0.5" y="0.5" width="899" height="209" rx="14" fill="none" stroke="#30363d"/>
+  <g font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">
+    <text x="56" y="50" font-size="15" fill="#3fb950">$ arduino-cli compile deskpal</text>
+    <text x="56" y="104" font-size="50" font-weight="700" fill="#e6edf3" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">deskpal</text>
+    <text x="58" y="132" font-size="17" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">Clock, weather, room and GitHub on a tiny OLED.</text>
+    <g font-size="14" text-anchor="middle"><rect x="56" y="150" width="71" height="30" rx="15" fill="#0f2a1a" stroke="#3fb950"/><text x="91.5" y="170" fill="#3fb950">ESP32</text><rect x="137" y="150" width="88" height="30" rx="15" fill="#161b22" stroke="#30363d"/><text x="181.0" y="170" fill="#e6edf3">SSD1306</text><rect x="235" y="150" width="71" height="30" rx="15" fill="#161b22" stroke="#30363d"/><text x="270.5" y="170" fill="#e6edf3">DHT22</text><rect x="316" y="150" width="71" height="30" rx="15" fill="#161b22" stroke="#30363d"/><text x="351.5" y="170" fill="#e6edf3">Wokwi</text></g>
+    <text x="844" y="50" font-size="13" fill="#6e7681" text-anchor="end">github.com/A2M33</text>
+  </g>
+</svg>
