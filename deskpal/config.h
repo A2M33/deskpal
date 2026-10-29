@@ -55,6 +55,31 @@
 #define GITHUB_TOKEN ""  // empty = the GitHub screen shows setup instructions
 #endif
 
+// ---------- Night mode ----------
+// Between these hours (local time, 0-23) the screen is dimmed or switched off.
+// The window may cross midnight. Set both to the same hour to turn it off.
+#ifndef NIGHT_START_HOUR
+#define NIGHT_START_HOUR 23
+#endif
+#ifndef NIGHT_END_HOUR
+#define NIGHT_END_HOUR 7
+#endif
+#define NIGHT_DIM 1  // lower the contrast
+#define NIGHT_OFF 2  // switch the screen off; a button press wakes it for NIGHT_WAKE_MS
+#ifndef NIGHT_MODE
+#define NIGHT_MODE NIGHT_DIM
+#endif
+#ifndef NIGHT_CONTRAST
+#define NIGHT_CONTRAST 1  // 0-255; daytime is 207, the SSD1306 library's default
+#endif
+
+// ---------- Burn-in protection ----------
+// OLED pixels that stay lit for months fade unevenly (the header line, the
+// clock digits). Moving the whole picture by 1 px every minute spreads the wear.
+#ifndef PIXEL_SHIFT
+#define PIXEL_SHIFT 1  // 0 = off
+#endif
+
 // ---------- Wiring ----------
 constexpr uint8_t PIN_I2C_SDA = 21;
 constexpr uint8_t PIN_I2C_SCL = 22;
@@ -68,6 +93,8 @@ constexpr int16_t SCREEN_HEIGHT = 64;
 constexpr unsigned long SCREEN_ROTATE_MS = 8000;
 constexpr unsigned long LONG_PRESS_MS = 800;
 constexpr unsigned long TOAST_MS = 1200;           // "Paused" / "Auto-rotate" message
+constexpr unsigned long NIGHT_WAKE_MS = 30000;     // screen on after a press, with NIGHT_OFF
+constexpr unsigned long PIXEL_SHIFT_MS = 60000;    // how often the picture moves by 1 px
 constexpr unsigned long DRAW_INTERVAL_MS = 250;    // redraw 4x per second, enough for a clock
 constexpr unsigned long ROOM_READ_MS = 2500;       // the DHT22 needs at least 2 s between reads
 constexpr unsigned long WIFI_RESTART_MS = 2UL * 60 * 1000;  // offline this long: start Wi-Fi over

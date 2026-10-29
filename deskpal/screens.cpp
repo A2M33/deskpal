@@ -221,7 +221,7 @@ void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherDa
   char line[24];
   formatAge(nowMs - w.updatedAtMs, age, sizeof(age));
   snprintf(line, sizeof(line), w.lastFetchFailed ? "! last ok %s" : "updated %s", age);
-  printAt(d, 0, 56, line);
+  printAt(d, 0, 55, line);  // not 56: descenders would reach the last row, which shiftFrame() may push off
 }
 
 void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading& r,
@@ -309,6 +309,19 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
   formatAgeShort(nowMs - g.updatedAtMs, age, sizeof(age));
   snprintf(line, sizeof(line), g.lastFetchFailed ? "!%s" : "%s", age);
   printAt(d, panelX, 54, line);
+}
+
+void shiftFrame(Adafruit_SSD1306& d, int8_t dx, int8_t dy) {
+  if (dx == 0 && dy == 0) return;
+  // Walk from the bottom-right corner, so every pixel is read before it is
+  // overwritten. Rows and columns that move in from the edge stay dark.
+  for (int16_t y = SCREEN_HEIGHT - 1; y >= 0; y--) {
+    for (int16_t x = SCREEN_WIDTH - 1; x >= 0; x--) {
+      const int16_t fromX = x - dx, fromY = y - dy;
+      const bool on = fromX >= 0 && fromY >= 0 && d.getPixel(fromX, fromY);
+      d.drawPixel(x, y, on ? SSD1306_WHITE : SSD1306_BLACK);
+    }
+  }
 }
 
 void drawToast(Adafruit_SSD1306& d, const char* text) {

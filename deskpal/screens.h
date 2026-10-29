@@ -30,3 +30,8 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
 
 // Small inverted message box drawn on top of whatever screen is showing.
 void drawToast(Adafruit_SSD1306& d, const char* text);
+
+// Moves the finished frame right by dx and down by dy pixels (0 or 1 each),
+// for burn-in protection. Every screen leaves the last column and row free,
+// so nothing important falls off the edge.
+void shiftFrame(Adafruit_SSD1306& d, int8_t dx, int8_t dy);

@@ -45,6 +45,11 @@ unsigned long lastDrawMs = 0;
 const char* toastText = nullptr;
 unsigned long toastStartMs = 0;
 
+enum class Brightness : uint8_t { Day, Dim, Off };
+Brightness brightness = Brightness::Day;
+bool nightWake = false;  // screen woken by the button during NIGHT_OFF hours
+unsigned long nightWakeStartMs = 0;
+
 bool wifiWasConnected = false;
 unsigned long wifiDownSinceMs = 0;  // when the connection dropped, or the last full restart
 bool clockStarted = false;
@@ -119,7 +124,15 @@ void showToast(const char* text, unsigned long now) {
 }
 
 void handleButton(unsigned long now) {
-  switch (button.update(now)) {
+  const ButtonEvent event = button.update(now);
+  if (event != ButtonEvent::None && brightness == Brightness::Off) {
+    // The screen is off for the night: the press only wakes it up.
+    nightWake = true;
+    nightWakeStartMs = now;
+    redrawNow = true;
+    return;
+  }
+  switch (event) {
     case ButtonEvent::ShortPress:
       showScreen((currentScreen + 1) % SCREEN_COUNT, now);
       break;
@@ -213,6 +226,45 @@ void startNetworkTask() {
   xTaskCreatePinnedToCore(networkTask, "network", 12 * 1024, nullptr, 1, nullptr, 0);
 }
 
+// ---------- Night mode ----------
+
+bool isNightHour(int hour) {
+  if (NIGHT_START_HOUR == NIGHT_END_HOUR) return false;  // night mode disabled
+  if (NIGHT_START_HOUR < NIGHT_END_HOUR) return hour >= NIGHT_START_HOUR && hour < NIGHT_END_HOUR;
+  return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;  // window crosses midnight
+}
+
+void setContrast(uint8_t value) {
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  display.ssd1306_command(value);
+}
+
+void updateBrightness(unsigned long now) {
+  if (nightWake && now - nightWakeStartMs >= NIGHT_WAKE_MS) nightWake = false;
+
+  Brightness wanted = Brightness::Day;
+  tm localTime;
+  if (getClock(localTime) && isNightHour(localTime.tm_hour)) {
+    wanted = (NIGHT_MODE == NIGHT_OFF && !nightWake) ? Brightness::Off : Brightness::Dim;
+  }
+  if (wanted == brightness) return;
+
+  if (brightness == Brightness::Off) display.ssd1306_command(SSD1306_DISPLAYON);
+  switch (wanted) {
+    case Brightness::Day:
+      setContrast(0xCF);  // what Adafruit_SSD1306::begin() sets
+      break;
+    case Brightness::Dim:
+      setContrast(NIGHT_CONTRAST);
+      break;
+    case Brightness::Off:
+      display.ssd1306_command(SSD1306_DISPLAYOFF);
+      break;
+  }
+  brightness = wanted;
+  redrawNow = true;
+}
+
 // ---------- Drawing ----------
 
 void drawCurrentScreen(unsigned long now) {
@@ -221,6 +273,7 @@ void drawCurrentScreen(unsigned long now) {
     redrawNow = true;
   }
   if (!redrawNow && now - lastDrawMs < DRAW_INTERVAL_MS) return;
+  if (brightness == Brightness::Off) return;  // nothing to see, skip the I2C transfer
   redrawNow = false;
   lastDrawMs = now;
 
@@ -253,6 +306,13 @@ void drawCurrentScreen(unsigned long now) {
   if (toastText != nullptr) {
     if (now - toastStartMs < TOAST_MS) drawToast(display, toastText);
     else toastText = nullptr;
+  }
+
+  if (PIXEL_SHIFT) {
+    // Step through four positions, one per minute: right, right+down, down, home.
+    static const int8_t kShift[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+    const uint8_t step = (now / PIXEL_SHIFT_MS) % 4;
+    shiftFrame(display, kShift[step][0], kShift[step][1]);
   }
 
   display.display();  // send the finished frame to the OLED in one go
@@ -291,5 +351,6 @@ void loop() {
   rotateScreens(now);
   maintainWifi(now);
   readRoomSensor(now);
+  updateBrightness(now);
   drawCurrentScreen(now);
 }
