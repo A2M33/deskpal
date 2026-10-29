@@ -269,13 +269,6 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
   snprintf(title, sizeof(title), "@%s", GITHUB_USER);
   drawHeader(d, title, s);
 
-  if (!githubHasToken()) {
-    printCentered(d, 18, "No GitHub token yet");
-    printCentered(d, 30, "add it in secrets.h");
-    printCentered(d, 42, "(see README)");
-    return;
-  }
-
   if (!g.valid) {
     if (!s.wifiConnected) {
       drawConnecting(d);
@@ -297,10 +290,12 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
     }
   }
 
-  // Side panel: total for the period and the data's age.
+  // Side panel: total for the period and the data's age. Without day counts
+  // (public page in an unexpected format) there is no total to show.
   const int16_t panelX = GITHUB_WEEKS * 7 + 3;
   char total[8];
-  snprintf(total, sizeof(total), "%u", g.total);
+  if (g.hasCounts) snprintf(total, sizeof(total), "%u", g.total);
+  else strlcpy(total, "-", sizeof(total));
   printAt(d, panelX, 14, total);
   printAt(d, panelX, 24, "total");
 

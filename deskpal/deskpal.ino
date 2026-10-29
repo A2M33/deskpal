@@ -210,12 +210,6 @@ void readRoomSensor(unsigned long now) {
   room.readAtMs = now;
 }
 
-// Web requests block for a few seconds (longer if the server is slow, capped by
-// HTTP_TIMEOUT_MS), so they live in this task on core 0. Arduino's loop() runs
-// on core 1 and keeps drawing while a request is in flight.
-//
-// The task fetches into its own copies and only takes the mutex for the quick
-// copy into the shared `weather` and `github`, so loop() never waits on the network.
 // Coordinates from config win. Without them, ask ip-api.com once per boot
 // (again after FETCH_RETRY_MS if that fails). A configured WEATHER_PLACE
 // replaces the city name either way.
@@ -233,6 +227,12 @@ bool resolveLocation(Location& location) {
   return true;
 }
 
+// Web requests block for a few seconds (longer if the server is slow, capped by
+// HTTP_TIMEOUT_MS), so they live in this task on core 0. Arduino's loop() runs
+// on core 1 and keeps drawing while a request is in flight.
+//
+// The task fetches into its own copies and only takes the mutex for the quick
+// copy into the shared `weather` and `github`, so loop() never waits on the network.
 void networkTask(void*) {
   static Location location;
   static WeatherData myWeather;
@@ -260,8 +260,10 @@ void networkTask(void*) {
         onlineDataChanged = true;
       }
 
-      // GitHub's date range needs the real date (in UTC, so no time zone needed).
-      if (githubHasToken() && clockSynced() && millis() - githubLastTryMs >= githubWaitMs) {
+      // With a token, the GraphQL date range needs the real date (UTC, so no
+      // time zone needed). The public page brings its own dates.
+      const bool githubReady = !githubHasToken() || clockSynced();
+      if (githubReady && millis() - githubLastTryMs >= githubWaitMs) {
         const bool ok = fetchGithub(myGithub);
         githubLastTryMs = millis();
         githubWaitMs = ok ? GITHUB_REFRESH_MS : FETCH_RETRY_MS;
