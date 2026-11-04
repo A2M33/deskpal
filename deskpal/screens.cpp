@@ -53,10 +53,14 @@ void formatAgeShort(unsigned long ageMs, char* out, size_t len) {
   else snprintf(out, len, "%lud", minutes / (24 * 60));
 }
 
-void drawHeader(Adafruit_SSD1306& d, const char* title, const StatusInfo& s) {
+void beginFrame(Adafruit_SSD1306& d) {
   d.clearDisplay();
   d.setTextColor(SSD1306_WHITE);
   d.setTextWrap(false);
+}
+
+void drawHeader(Adafruit_SSD1306& d, const char* title, const StatusInfo& s) {
+  beginFrame(d);
 
   // 14 characters is as wide as the title can get before it hits the icons.
   char clipped[15];
@@ -99,23 +103,15 @@ void drawConnecting(Adafruit_SSD1306& d) {
 
 // ---------- Weather icons (each fits a 24x24 box at x, y) ----------
 
-// A sun of the given radius with 8 short rays around it, centred on cx, cy.
-void drawSunAt(Adafruit_SSD1306& d, int16_t cx, int16_t cy, int16_t r) {
+// A filled sun with 8 rays, centred on cx, cy. Each ray runs from rayFrom to
+// rayTo pixels out from the centre.
+void drawSun(Adafruit_SSD1306& d, int16_t cx, int16_t cy, int16_t r, int16_t rayFrom,
+             int16_t rayTo) {
   d.fillCircle(cx, cy, r, SSD1306_WHITE);
-  for (int i = 0; i < 8; i++) {  // 8 rays, 45 degrees apart
+  for (int i = 0; i < 8; i++) {  // 45 degrees apart
     const float a = i * PI / 4;
-    d.drawLine(cx + cosf(a) * (r + 2), cy + sinf(a) * (r + 2), cx + cosf(a) * (r + 4),
-               cy + sinf(a) * (r + 4), SSD1306_WHITE);
-  }
-}
-
-void drawSun(Adafruit_SSD1306& d, int16_t x, int16_t y) {
-  const int16_t cx = x + 12, cy = y + 12;
-  d.fillCircle(cx, cy, 5, SSD1306_WHITE);
-  for (int i = 0; i < 8; i++) {  // 8 rays, 45 degrees apart
-    const float a = i * PI / 4;
-    d.drawLine(cx + cosf(a) * 8, cy + sinf(a) * 8, cx + cosf(a) * 11, cy + sinf(a) * 11,
-               SSD1306_WHITE);
+    d.drawLine(cx + cosf(a) * rayFrom, cy + sinf(a) * rayFrom, cx + cosf(a) * rayTo,
+               cy + sinf(a) * rayTo, SSD1306_WHITE);
   }
 }
 
@@ -132,12 +128,12 @@ void drawCloud(Adafruit_SSD1306& d, int16_t x, int16_t y, uint16_t color = SSD13
 void drawWeatherIcon(Adafruit_SSD1306& d, int16_t x, int16_t y, WeatherIcon icon) {
   switch (icon) {
     case WeatherIcon::Sun:
-      drawSun(d, x, y);
+      drawSun(d, x + 12, y + 12, 5, 8, 11);
       break;
     case WeatherIcon::PartCloud:
       // Sun at the top right, cloud in front of it at the bottom left. The
       // cloud is first drawn 1 px bigger in black, so a dark gap separates the two.
-      drawSunAt(d, x + 15, y + 6, 4);
+      drawSun(d, x + 15, y + 6, 4, 6, 8);
       drawCloud(d, x - 1, y + 10, SSD1306_BLACK, 1);
       drawCloud(d, x - 1, y + 10);
       break;
@@ -182,9 +178,7 @@ void drawContributionCell(Adafruit_SSD1306& d, int16_t x, int16_t y, uint8_t lev
 }  // namespace
 
 void drawBootScreen(Adafruit_SSD1306& d) {
-  d.clearDisplay();
-  d.setTextColor(SSD1306_WHITE);
-  d.setTextWrap(false);
+  beginFrame(d);
   printCentered(d, 18, "deskpal", 2);
   printCentered(d, 44, "starting...");
 }
@@ -336,9 +330,7 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
 }
 
 void drawPortalScreen(Adafruit_SSD1306& d, const char* apName) {
-  d.clearDisplay();
-  d.setTextColor(SSD1306_WHITE);
-  d.setTextWrap(false);
+  beginFrame(d);
   printAt(d, 0, 0, "Setup");
   d.drawFastHLine(0, 9, SCREEN_WIDTH, SSD1306_WHITE);
   printCentered(d, 14, "Join this Wi-Fi:");
