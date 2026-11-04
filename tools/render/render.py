@@ -71,7 +71,6 @@ def find_libraries(explicit):
     if os.environ.get("ARDUINO_DIRECTORIES_USER"):
         candidates.append(Path(os.environ["ARDUINO_DIRECTORIES_USER"]) / "libraries")
     candidates += [
-        Path(tempfile.gettempdir()) / "deskpal-acli" / "user" / "libraries",
         Path.home() / "Documents" / "Arduino" / "libraries",
         Path.home() / "Arduino" / "libraries",
     ]
