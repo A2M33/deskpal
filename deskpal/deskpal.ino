@@ -277,7 +277,9 @@ void networkTask(void*) {
   unsigned long githubWaitMs = 0;
 
   for (;;) {
-    if (WiFi.status() == WL_CONNECTED) {
+    // The portal rewrites `settings` on the loop() side and needs the Wi-Fi
+    // radio and the memory, so no new request starts while it is open.
+    if (WiFi.status() == WL_CONNECTED && !portalActive()) {
       if (millis() - weatherLastTryMs >= weatherWaitMs) {
         bool ok = resolveLocation(location);
         if (ok) ok = fetchWeather(location, myWeather);

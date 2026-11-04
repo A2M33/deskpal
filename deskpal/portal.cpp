@@ -14,7 +14,7 @@ WiFiManagerParameter* tokenParam = nullptr;
 WiFiManagerParameter* latParam = nullptr;
 WiFiManagerParameter* lonParam = nullptr;
 
-bool active = false;
+volatile bool active = false;  // also read by the network task
 bool saveRequested = false;
 unsigned long openedAtMs = 0;
 
