@@ -132,7 +132,7 @@ The portal lets you set up deskpal from your phone, without editing code.
 4. Fill in the extra fields if you want: GitHub user, GitHub token, latitude and longitude. Leave the token field empty to keep the saved token, or type `-` to remove it. Leave both coordinates empty to use the IP lookup.
 5. Tap **Save**. deskpal stores the settings in its flash memory and restarts.
 
-deskpal also opens the portal by itself after a restart when it has no network name, or when it can't join the saved network within 30 seconds. If you save nothing within 5 minutes, it restarts and tries the saved network again.
+deskpal also opens the portal by itself after a restart when it has no network name, or when it can't join the saved network within 30 seconds. A new board with no `secrets.h` tries `Wokwi-GUEST` first and opens the portal after 2 minutes. If you save nothing within 5 minutes, it restarts and tries the saved network again.
 
 Settings saved in the portal win over the ones in `secrets.h`. The values in `secrets.h` and `config.h` only fill in what the portal has never saved.
 

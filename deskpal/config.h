@@ -116,6 +116,7 @@ constexpr unsigned long SCREEN_ROTATE_MS = 8000;
 constexpr unsigned long LONG_PRESS_MS = 800;
 constexpr unsigned long PORTAL_HOLD_MS = 5000;     // hold the button this long to open the portal
 constexpr unsigned long PORTAL_AFTER_MS = 30000;   // no Wi-Fi this long after boot: open the portal
+constexpr unsigned long PORTAL_AFTER_GUEST_MS = 2UL * 60 * 1000;  // the same for Wokwi-GUEST
 constexpr unsigned long PORTAL_TIMEOUT_MS = 5UL * 60 * 1000;  // then restart if nothing was saved
 constexpr unsigned long TOAST_MS = 1200;           // "Paused" / "Auto-rotate" message
 constexpr unsigned long NIGHT_WAKE_MS = 30000;     // screen on after a press, with NIGHT_OFF

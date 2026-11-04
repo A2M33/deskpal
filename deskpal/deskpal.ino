@@ -66,8 +66,10 @@ bool roomReadOnce = false;
 
 // ---------- Wi-Fi and time ----------
 
-// The simulator's network. The portal never opens by itself there: Wokwi
-// cannot join the portal's network, and Wokwi-GUEST needs no setup anyway.
+// The simulator's network, and also the default name on a real board that has
+// not been set up yet. Wokwi joins within seconds and cannot use the portal, so
+// the wait before the portal opens is longer here (see maintainWifi()). A real
+// board never finds this network and still gets its portal.
 bool onWokwiGuest() { return strcmp(settings.wifiSsid, "Wokwi-GUEST") == 0; }
 
 void startWifi() {
@@ -113,8 +115,8 @@ void maintainWifi(unsigned long now) {
   // First setup, or the saved network is gone: open the portal by itself,
   // once per boot. A drop after a good connection only reconnects.
   const bool noNetwork = settings.wifiSsid[0] == '\0';
-  if (!wifiEverConnected && !autoPortalDone && !onWokwiGuest() &&
-      (noNetwork || now >= PORTAL_AFTER_MS)) {
+  const unsigned long portalAfterMs = onWokwiGuest() ? PORTAL_AFTER_GUEST_MS : PORTAL_AFTER_MS;
+  if (!wifiEverConnected && !autoPortalDone && (noNetwork || now >= portalAfterMs)) {
     autoPortalDone = true;
     startPortal();
     return;
