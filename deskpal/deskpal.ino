@@ -187,6 +187,7 @@ void showToast(const char* text, unsigned long now) {
 
 void handleButton(unsigned long now) {
   const ButtonEvent event = button.update(now);
+  if (event != ButtonEvent::None && nightWake) nightWakeStartMs = now;  // in use: stay awake
   if (event != ButtonEvent::None && brightness == Brightness::Off) {
     // The screen is off for the night: the press only wakes it up.
     nightWake = true;
