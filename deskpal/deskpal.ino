@@ -258,8 +258,8 @@ bool resolveLocation(Location& location) {
 }
 
 // Web requests block for a few seconds (longer if the server is slow, capped by
-// HTTP_TIMEOUT_MS), so they live in this task on core 0. Arduino's loop() runs
-// on core 1 and keeps drawing while a request is in flight.
+// HTTP_TIMEOUT_MS and HTTPS_HANDSHAKE_S), so they live in this task on core 0.
+// Arduino's loop() runs on core 1 and keeps drawing while a request is in flight.
 //
 // The task fetches into its own copies and only takes the mutex for the quick
 // copy into the shared `weather` and `github`, so loop() never waits on the network.

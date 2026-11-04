@@ -201,6 +201,7 @@ bool fetchPublicCalendar(GithubData& data) {
 
   WiFiClientSecure client;
   client.setInsecure();  // see weather.cpp and the README
+  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
 
   HTTPClient http;
   http.useHTTP10(true);  // a plain stream, no chunked encoding to undo
@@ -335,6 +336,7 @@ bool fetchGithub(GithubData& data) {
 
   WiFiClientSecure client;
   client.setInsecure();  // see weather.cpp and the README
+  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
 
   HTTPClient http;
   http.useHTTP10(true);  // no chunked reply, so the stream can go straight to ArduinoJson

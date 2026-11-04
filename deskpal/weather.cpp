@@ -60,6 +60,7 @@ bool fetchWeather(const Location& where, WeatherData& data) {
   // Skip HTTPS certificate checks. The connection is still encrypted, but not
   // verified. Fine for public weather data; see the README for details.
   client.setInsecure();
+  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
 
   HTTPClient http;
   // HTTP/1.0 stops the server from sending a "chunked" reply, so we can feed

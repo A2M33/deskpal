@@ -128,3 +128,4 @@ constexpr unsigned long WEATHER_REFRESH_MS = 15UL * 60 * 1000;
 constexpr unsigned long GITHUB_REFRESH_MS = 30UL * 60 * 1000;
 constexpr unsigned long FETCH_RETRY_MS = 60UL * 1000;  // after a failed request, try again sooner
 constexpr uint16_t HTTP_TIMEOUT_MS = 8000;
+constexpr unsigned long HTTPS_HANDSHAKE_S = 15;  // in seconds; the library's default is 120
