@@ -31,7 +31,7 @@ void printCentered(Adafruit_SSD1306& d, int16_t y, const char* text, uint8_t siz
 // Temperatures are kept in Celsius and only converted for display.
 float displayTemp(float celsius) { return TEMP_FAHRENHEIT ? celsius * 9 / 5 + 32 : celsius; }
 
-// "°C" or "°F" drawn by hand: the default font has no degree sign unless you switch code pages.
+// "°C" or "°F" with a hand-drawn ring, which looks rounder at size 2 than the font's degree sign.
 void drawDegrees(Adafruit_SSD1306& d, int16_t x, int16_t y, uint8_t size) {
   d.drawCircle(x + size, y + size, size, SSD1306_WHITE);
   printAt(d, x + 2 * size + 2, y, TEMP_FAHRENHEIT ? "F" : "C", size);
@@ -53,19 +53,54 @@ void formatAgeShort(unsigned long ageMs, char* out, size_t len) {
   else snprintf(out, len, "%lud", minutes / (24 * 60));
 }
 
+// City and network names arrive as UTF-8, but the font is code page 437. This
+// table covers U+00C0 to U+00FF: the code page's own letter where it has one
+// (ä, ö, ü, ß, é), otherwise the nearest plain letter.
+const uint8_t kLatin1ToFont[64] = {
+    'A',  'A',  'A',  'A',  0x8E, 0x8F, 0x92, 0x80, 'E',  0x90, 'E',  'E',  'I',  'I',  'I',  'I',
+    'D',  0xA5, 'O',  'O',  'O',  'O',  0x99, 'x',  'O',  'U',  'U',  'U',  0x9A, 'Y',  'P',  0xE1,
+    0x85, 0xA0, 0x83, 'a',  0x84, 0x86, 0x91, 0x87, 0x8A, 0x82, 0x88, 0x89, 0x8D, 0xA1, 0x8C, 0x8B,
+    'd',  0xA4, 0x95, 0xA2, 0x93, 'o',  0x94, '/',  'o',  0x97, 0xA3, 0x96, 0x81, 'y',  'p',  0x98,
+};
+
+// Copies UTF-8 text in the font's encoding. Letters outside the table become "?".
+void toFontText(const char* utf8, char* out, size_t len) {
+  const uint8_t* in = (const uint8_t*)utf8;
+  size_t n = 0;
+  while (*in != '\0' && n < len - 1) {
+    uint8_t c = *in++;
+    if (c >= 0x80) {
+      const bool inTable = c == 0xC3 && (*in & 0xC0) == 0x80;
+      c = inTable ? kLatin1ToFont[*in & 0x3F] : '?';
+      while ((*in & 0xC0) == 0x80) in++;  // the rest of this character
+    }
+    out[n++] = (char)c;
+  }
+  out[n] = '\0';
+}
+
 void beginFrame(Adafruit_SSD1306& d) {
   d.clearDisplay();
   d.setTextColor(SSD1306_WHITE);
   d.setTextWrap(false);
+  d.cp437(true);  // the real code page, so that ß and the letters after it are in the right place
 }
 
 void drawHeader(Adafruit_SSD1306& d, const char* title, const StatusInfo& s) {
   beginFrame(d);
 
   // 14 characters is as wide as the title can get before it hits the icons.
-  char clipped[15];
-  strlcpy(clipped, title, sizeof(clipped));
-  printAt(d, 0, 0, clipped);
+  // Cut a longer one at a space if it has one: "Frankfurt am", not "Frankfurt am M".
+  constexpr size_t kMaxTitle = 14;
+  char text[40];
+  toFontText(title, text, sizeof(text));
+  if (strlen(text) > kMaxTitle) {
+    const bool midWord = text[kMaxTitle] != ' ';
+    text[kMaxTitle] = '\0';
+    char* space = strrchr(text, ' ');
+    if (midWord && space != nullptr) *space = '\0';
+  }
+  printAt(d, 0, 0, text);
 
   if (s.paused) {  // two bars, like a media player's pause button
     d.fillRect(86, 1, 2, 6, SSD1306_WHITE);
@@ -94,7 +129,7 @@ void drawHeader(Adafruit_SSD1306& d, const char* title, const StatusInfo& s) {
 void drawConnecting(Adafruit_SSD1306& d) {
   printCentered(d, 22, "Connecting to Wi-Fi");
   char ssid[22];
-  strlcpy(ssid, settings.wifiSsid, sizeof(ssid));
+  toFontText(settings.wifiSsid, ssid, sizeof(ssid));
   printCentered(d, 34, ssid);
   // Dots that grow and reset, so it is obvious the device has not frozen.
   static const char* const kDots[] = {"", ".", "..", "..."};
