@@ -371,7 +371,9 @@ void drawCurrentScreen(unsigned long now) {
       xSemaphoreTake(dataMutex, portMAX_DELAY);
       const WeatherData copy = weather;
       xSemaphoreGive(dataMutex);
-      drawWeatherScreen(display, status, copy, now);
+      // millis(), not `now`: a fetch that finished after `now` was read would
+      // be newer than it, and the age would wrap around to 49710 days.
+      drawWeatherScreen(display, status, copy, millis());
       break;
     }
     case SCREEN_ROOM:
@@ -381,7 +383,7 @@ void drawCurrentScreen(unsigned long now) {
       xSemaphoreTake(dataMutex, portMAX_DELAY);
       const GithubData copy = github;
       xSemaphoreGive(dataMutex);
-      drawGithubScreen(display, status, copy, now);
+      drawGithubScreen(display, status, copy, millis());  // see the weather case
       break;
     }
   }
