@@ -125,6 +125,7 @@ constexpr unsigned long NIGHT_WAKE_MS = 30000;     // screen on after a press, w
 constexpr unsigned long PIXEL_SHIFT_MS = 60000;    // how often the picture moves by 1 px
 constexpr unsigned long DRAW_INTERVAL_MS = 250;    // redraw 4x per second, enough for a clock
 constexpr unsigned long ROOM_READ_MS = 2500;       // the DHT22 needs at least 2 s between reads
+constexpr unsigned long ROOM_STALE_MS = 60000;     // no good reading this long: warn on the screen
 constexpr unsigned long WIFI_RESTART_MS = 2UL * 60 * 1000;  // offline this long: start Wi-Fi over
 constexpr unsigned long WEATHER_REFRESH_MS = 15UL * 60 * 1000;
 constexpr unsigned long GITHUB_REFRESH_MS = 30UL * 60 * 1000;

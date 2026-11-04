@@ -289,13 +289,17 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
   if (!r.valid) {
     printCentered(d, 20, "No sensor reading");
     printCentered(d, 32, "Check DHT22 wiring");
-    printCentered(d, 44, "(data pin GPIO15)");
+    char pin[20];
+    snprintf(pin, sizeof(pin), "(data pin GPIO%u)", PIN_DHT);
+    printCentered(d, 44, pin);
     return;
   }
 
   char temp[10];
   char humidity[8];
   snprintf(temp, sizeof(temp), "%.1f", displayTemp(r.tempC));
+  // "-12.5" would run into "100%", so five-character values lose the decimal.
+  if (strlen(temp) > 4) snprintf(temp, sizeof(temp), "%.0f", displayTemp(r.tempC));
   snprintf(humidity, sizeof(humidity), "%.0f%%", r.humidity);
 
   printAt(d, 4, 16, temp, 2);
@@ -305,10 +309,11 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
   printAt(d, 4, 34, "temp");
   printAt(d, 124 - textWidth("humidity", 1), 34, "humidity");
 
-  // Comfort label in a rounded box. If the sensor stopped answering, show
-  // how old the numbers are instead, so stale values are never mistaken for fresh ones.
+  // Comfort label in a rounded box. If the sensor stopped answering, show how
+  // old the numbers are instead, so stale values are never mistaken for fresh
+  // ones. A single failed read is normal for a DHT22 and not worth a warning.
   char label[24];
-  if (r.lastReadFailed) {
+  if (r.lastReadFailed && nowMs - r.readAtMs >= ROOM_STALE_MS) {
     char age[16];
     formatAge(nowMs - r.readAtMs, age, sizeof(age));
     snprintf(label, sizeof(label), "! %s", age);
