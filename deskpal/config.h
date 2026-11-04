@@ -112,6 +112,7 @@ constexpr int16_t SCREEN_WIDTH = 128;
 constexpr int16_t SCREEN_HEIGHT = 64;
 
 // ---------- Timing (all in milliseconds) ----------
+constexpr unsigned long LOOP_PAUSE_MS = 5;
 constexpr unsigned long SCREEN_ROTATE_MS = 8000;
 constexpr unsigned long LONG_PRESS_MS = 800;
 constexpr unsigned long PORTAL_HOLD_MS = 5000;     // hold the button this long to open the portal

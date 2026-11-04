@@ -5,8 +5,8 @@
 // the next screen, a 1-second press pauses or resumes the rotation, and holding
 // the button for 5 seconds opens the setup portal (portal.h).
 //
-// loop() never waits with delay(). Each job checks millis() to see whether it
-// is its turn, does a small piece of work and returns. Web requests can take
+// No job in loop() waits for anything. Each one checks millis() to see whether
+// it is its turn, does a small piece of work and returns. Web requests can take
 // several seconds, so they run in their own FreeRTOS task on the other CPU
 // core (see networkTask()) and never hold up the clock, button or display.
 
@@ -453,4 +453,7 @@ void loop() {
   }
   updateBrightness(now);
   drawCurrentScreen(now);
+  // Nothing here needs more than 200 passes a second. Without this pause the
+  // CPU spins at full speed for nothing, which also slows the Wokwi simulation.
+  delay(LOOP_PAUSE_MS);
 }
