@@ -135,7 +135,7 @@ bool timezoneConfigured() { return TIMEZONE[0] != '\0'; }
 
 // True once NTP has synced. (Before syncing, the ESP32 thinks it is 1970.)
 bool clockSynced() {
-  return time(nullptr) >= 1700000000;  // any date before Nov 2023 means "not synced"
+  return time(nullptr) >= CLOCK_VALID_AFTER;
 }
 
 // Sets the local time zone from Open-Meteo's UTC offset, unless TIMEZONE is set.

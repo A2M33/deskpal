@@ -52,6 +52,30 @@ const char* httpErrorReason(HTTPClient& http, int status) {
   return nullptr;
 }
 
+// Fails with one of the reasons above, or with the bare status code if none fits.
+bool failHttp(GithubData& data, HTTPClient& http, int status) {
+  const char* reason = httpErrorReason(http, status);  // reads headers, so before end()
+  http.end();
+  if (reason != nullptr) return fail(data, reason);
+  char code[24];
+  snprintf(code, sizeof(code), "HTTP %d", status);
+  return fail(data, code);
+}
+
+// What both kinds of request have in common. `client` must outlive `http`.
+bool beginRequest(WiFiClientSecure& client, HTTPClient& http, const char* url) {
+  client.setInsecure();  // see weather.cpp and the README
+  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
+  http.useHTTP10(true);  // a plain stream, no chunked encoding to undo
+  http.setConnectTimeout(HTTP_TIMEOUT_MS);
+  http.setTimeout(HTTP_TIMEOUT_MS);
+  if (!http.begin(client, url)) return false;
+  http.setUserAgent("deskpal");  // GitHub rejects requests without a User-Agent
+  const char* headersToKeep[] = {"x-ratelimit-remaining", "retry-after"};
+  http.collectHeaders(headersToKeep, 2);
+  return true;
+}
+
 // GraphQL reports problems inside a normal 200 reply, with a machine-readable type.
 const char* graphqlErrorReason(const char* type, const char* message) {
   if (strcmp(type, "NOT_FOUND") == 0) return kUserNotFound;
@@ -200,27 +224,15 @@ bool fetchPublicCalendar(GithubData& data) {
            settings.githubUser);
 
   WiFiClientSecure client;
-  client.setInsecure();  // see weather.cpp and the README
-  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
-
   HTTPClient http;
-  http.useHTTP10(true);  // a plain stream, no chunked encoding to undo
-  http.setConnectTimeout(HTTP_TIMEOUT_MS);
-  http.setTimeout(HTTP_TIMEOUT_MS);
-  if (!http.begin(client, url)) return fail(data, "Bad URL");
-  http.setUserAgent("deskpal");
-  const char* headersToKeep[] = {"x-ratelimit-remaining", "retry-after"};
-  http.collectHeaders(headersToKeep, 2);
+  if (!beginRequest(client, http, url)) return fail(data, "Bad URL");
 
   const int status = http.GET();
-  if (status != HTTP_CODE_OK) {
-    const char* reason = status == 404 ? kUserNotFound : httpErrorReason(http, status);
+  if (status == 404) {
     http.end();
-    if (reason != nullptr) return fail(data, reason);
-    char code[24];
-    snprintf(code, sizeof(code), "HTTP %d", status);
-    return fail(data, code);
+    return fail(data, kUserNotFound);
   }
+  if (status != HTTP_CODE_OK) return failHttp(data, http, status);
 
   // About 1.6 KB, so it goes on the heap instead of the network task's stack.
   std::unique_ptr<CalendarParser> parser(new (std::nothrow) CalendarParser());
@@ -307,7 +319,7 @@ bool fetchGithub(GithubData& data) {
 
   // The date range is built from the real clock, so NTP must have synced.
   const time_t now = time(nullptr);
-  if (now < 1700000000) return fail(data, "Clock not set");
+  if (now < CLOCK_VALID_AFTER) return fail(data, "Clock not set");
 
   // Start on the Sunday 12 weeks back, so every column is a whole week
   // (GitHub's calendar weeks run Sunday to Saturday).
@@ -325,6 +337,7 @@ bool fetchGithub(GithubData& data) {
 
   // Let ArduinoJson build the request body so quotes and escaping are always right.
   String body;
+  body.reserve(512);  // the query and variables take about 400 bytes: one allocation
   {
     JsonDocument request;
     request["query"] = kQuery;
@@ -335,30 +348,13 @@ bool fetchGithub(GithubData& data) {
   }
 
   WiFiClientSecure client;
-  client.setInsecure();  // see weather.cpp and the README
-  client.setHandshakeTimeout(HTTPS_HANDSHAKE_S);
-
   HTTPClient http;
-  http.useHTTP10(true);  // no chunked reply, so the stream can go straight to ArduinoJson
-  http.setConnectTimeout(HTTP_TIMEOUT_MS);
-  http.setTimeout(HTTP_TIMEOUT_MS);
-  if (!http.begin(client, "https://api.github.com/graphql")) return fail(data, "Bad URL");
-
-  http.setUserAgent("deskpal");  // GitHub rejects requests without a User-Agent
+  if (!beginRequest(client, http, "https://api.github.com/graphql")) return fail(data, "Bad URL");
   http.addHeader("Authorization", String("bearer ") + settings.githubToken);
   http.addHeader("Content-Type", "application/json");
-  const char* headersToKeep[] = {"x-ratelimit-remaining", "retry-after"};
-  http.collectHeaders(headersToKeep, 2);
 
   const int status = http.POST(body);
-  if (status != HTTP_CODE_OK) {
-    const char* reason = httpErrorReason(http, status);
-    http.end();
-    if (reason != nullptr) return fail(data, reason);
-    char code[24];
-    snprintf(code, sizeof(code), "HTTP %d", status);
-    return fail(data, code);
-  }
+  if (status != HTTP_CODE_OK) return failHttp(data, http, status);
 
   // Keep only the fields we use. Without a filter, the reply for 13 weeks is
   // small anyway, but this keeps RAM safe if someone widens the date range.

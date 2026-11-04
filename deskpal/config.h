@@ -41,6 +41,7 @@
 #ifndef NTP_SERVER_2
 #define NTP_SERVER_2 "time.google.com"
 #endif
+constexpr long CLOCK_VALID_AFTER = 1700000000;  // Nov 2023: anything earlier means "not synced"
 
 // ---------- Weather (Open-Meteo, no key needed) ----------
 // Leave the coordinates unset (NAN) and deskpal looks up the city of your
