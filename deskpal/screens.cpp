@@ -11,6 +11,7 @@ namespace {
 // Text size N scales that by N.
 constexpr int16_t kCharW = 6;
 constexpr int16_t kBodyTop = 12;  // first pixel row below the header line
+constexpr int16_t kBodyMiddle = 33;  // y for one line of text centred below the header
 
 int16_t textWidth(const char* text, uint8_t size) {
   // The last character's spacing column is empty, so leave it out.
@@ -26,6 +27,14 @@ void printAt(Adafruit_SSD1306& d, int16_t x, int16_t y, const char* text, uint8_
 void printCentered(Adafruit_SSD1306& d, int16_t y, const char* text, uint8_t size = 1) {
   int16_t x = (SCREEN_WIDTH - textWidth(text, size)) / 2;
   printAt(d, x < 0 ? 0 : x, y, text, size);
+}
+
+// Text in a rounded box, centred across the screen. The box is 13 px tall.
+void drawLabelBox(Adafruit_SSD1306& d, int16_t y, const char* text) {
+  const int16_t w = textWidth(text, 1) + 10;
+  const int16_t x = (SCREEN_WIDTH - w) / 2;
+  d.drawRoundRect(x, y, w, 13, 3, SSD1306_WHITE);
+  printAt(d, x + 5, y + 3, text);
 }
 
 // Temperatures are kept in Celsius and only converted for display.
@@ -131,8 +140,9 @@ void drawConnecting(Adafruit_SSD1306& d) {
   char ssid[22];
   toFontText(settings.wifiSsid, ssid, sizeof(ssid));
   printCentered(d, 34, ssid);
-  // Dots that grow and reset, so it is obvious the device has not frozen.
-  static const char* const kDots[] = {"", ".", "..", "..."};
+  // Dots that grow and reset, so it is obvious the device has not frozen. The
+  // spaces keep the first dot in one place instead of sliding as the text widens.
+  static const char* const kDots[] = {"   ", ".  ", ".. ", "..."};
   printCentered(d, 46, kDots[(millis() / 400) % 4]);
 }
 
@@ -223,7 +233,7 @@ void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTi
 
   if (localTime == nullptr) {
     if (!s.wifiConnected) drawConnecting(d);
-    else printCentered(d, 30, "Syncing time...");
+    else printCentered(d, kBodyMiddle, "Syncing time...");
     return;
   }
 
@@ -239,10 +249,10 @@ void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTi
   strftime(seconds, sizeof(seconds), "%S", localTime);
   strftime(date, sizeof(date), "%a %d %b %Y", localTime);
 
-  printAt(d, 7, 16, hhmm, 3);      // big HH:MM
-  printAt(d, 99, 24, seconds, 2);  // smaller seconds, bottom-aligned with it
-  if (CLOCK_12H) printAt(d, 105, 15, localTime->tm_hour < 12 ? "AM" : "PM");  // above the seconds
-  printCentered(d, 52, date);
+  printAt(d, 7, 17, hhmm, 3);      // big HH:MM, 21 px tall
+  printAt(d, 99, 24, seconds, 2);  // smaller seconds, 14 px tall, on the same baseline
+  if (CLOCK_12H) printAt(d, 105, 14, localTime->tm_hour < 12 ? "AM" : "PM");  // above the seconds
+  printCentered(d, 49, date);
 }
 
 void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherData& w,
@@ -253,15 +263,15 @@ void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherDa
     if (!s.wifiConnected) {
       drawConnecting(d);
     } else if (w.lastFetchFailed) {
-      printCentered(d, 24, "Weather unavailable");
-      printCentered(d, 36, "retrying soon");
+      printCentered(d, kBodyMiddle - 6, "Weather unavailable");
+      printCentered(d, kBodyMiddle + 6, "retrying soon");
     } else {
-      printCentered(d, 30, "Loading weather...");
+      printCentered(d, kBodyMiddle, "Loading weather...");
     }
     return;
   }
 
-  drawWeatherIcon(d, 2, 14, weatherIcon(w.code));
+  drawWeatherIcon(d, 2, 19, weatherIcon(w.code));  // centred on the text to its right
 
   char temp[10];
   snprintf(temp, sizeof(temp), "%.1f", displayTemp(w.tempC));
@@ -279,7 +289,7 @@ void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherDa
   char line[24];
   formatAge(nowMs - w.updatedAtMs, age, sizeof(age));
   snprintf(line, sizeof(line), w.lastFetchFailed ? "! last ok %s" : "updated %s", age);
-  printAt(d, 0, 55, line);  // not 56: descenders would reach the last row, which shiftFrame() may push off
+  printCentered(d, 55, line);  // not 56: descenders would reach the last row, which shiftFrame() may push off
 }
 
 void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading& r,
@@ -320,10 +330,7 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
   } else {
     strlcpy(label, comfortLabel(r.tempC, r.humidity), sizeof(label));
   }
-  const int16_t boxW = textWidth(label, 1) + 10;
-  const int16_t boxX = (SCREEN_WIDTH - boxW) / 2;
-  d.drawRoundRect(boxX, 46, boxW, 13, 3, SSD1306_WHITE);
-  printAt(d, boxX + 5, 49, label);
+  drawLabelBox(d, 46, label);
 }
 
 void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData& g,
@@ -336,10 +343,10 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
     if (!s.wifiConnected) {
       drawConnecting(d);
     } else if (g.error[0] != '\0') {
-      printCentered(d, 24, "GitHub error:");
-      printCentered(d, 36, g.error);
+      printCentered(d, kBodyMiddle - 6, "GitHub error:");
+      printCentered(d, kBodyMiddle + 6, g.error);
     } else {
-      printCentered(d, 30, "Loading GitHub...");
+      printCentered(d, kBodyMiddle, "Loading GitHub...");
     }
     return;
   }
@@ -359,24 +366,24 @@ void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData
   char total[8];
   if (g.hasCounts) snprintf(total, sizeof(total), "%u", g.total);
   else strlcpy(total, "-", sizeof(total));
-  printAt(d, panelX, 14, total);
-  printAt(d, panelX, 24, "total");
+  printAt(d, panelX, kBodyTop, total);  // level with the top of the grid
+  printAt(d, panelX, kBodyTop + 10, "total");
 
   char age[8];
   char line[10];
   formatAgeShort(nowMs - g.updatedAtMs, age, sizeof(age));
   snprintf(line, sizeof(line), g.lastFetchFailed ? "!%s" : "%s", age);
-  printAt(d, panelX, 54, line);
+  printAt(d, panelX, 54, line);  // level with the bottom of the grid
 }
 
 void drawPortalScreen(Adafruit_SSD1306& d, const char* apName) {
   beginFrame(d);
   printAt(d, 0, 0, "Setup");
   d.drawFastHLine(0, 9, SCREEN_WIDTH, SSD1306_WHITE);
-  printCentered(d, 14, "Join this Wi-Fi:");
-  char name[22];
+  printCentered(d, 13, "Join this Wi-Fi:");
+  char name[20];  // 19 characters is as wide as the box can get
   strlcpy(name, apName, sizeof(name));
-  printCentered(d, 26, name);
+  drawLabelBox(d, 23, name);
   printCentered(d, 40, "then open");
   printCentered(d, 50, "192.168.4.1");
 }
@@ -397,6 +404,7 @@ void shiftFrame(Adafruit_SSD1306& d, int8_t dx, int8_t dy) {
 void drawToast(Adafruit_SSD1306& d, const char* text) {
   const int16_t w = textWidth(text, 1) + 12;
   const int16_t x = (SCREEN_WIDTH - w) / 2;
+  d.fillRect(x - 2, 22, w + 4, 20, SSD1306_BLACK);  // a dark edge, so it stands clear of the big digits
   d.fillRoundRect(x, 24, w, 16, 4, SSD1306_WHITE);
   d.setTextColor(SSD1306_BLACK);
   printAt(d, x + 6, 28, text);
