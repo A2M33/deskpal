@@ -18,13 +18,23 @@ volatile bool active = false;  // also read by the network task
 bool saveRequested = false;
 unsigned long openedAtMs = 0;
 
-// Empty text means "not set" (NAN), so the location comes from the IP address again.
-float parseCoordinate(const char* text) {
+// Empty text means "not set" (NAN), so the location comes from the IP address
+// again. So does anything Open-Meteo would refuse, like a latitude of 135.
+float parseCoordinate(const char* text, float limit) {
   while (*text == ' ') text++;
   if (*text == '\0') return NAN;
   char* end = nullptr;
   const float value = strtof(text, &end);
-  return end == text ? NAN : value;
+  return end == text || fabsf(value) > limit ? NAN : value;
+}
+
+// Phone keyboards often add a space after a word, and a GitHub user name or
+// token with a space in it just fails later with a confusing error.
+void copyTrimmed(char* out, size_t len, const char* text) {
+  while (*text == ' ') text++;
+  strlcpy(out, text, len);
+  size_t n = strlen(out);
+  while (n > 0 && out[n - 1] == ' ') out[--n] = '\0';
 }
 
 void formatCoordinate(float value, char* out, size_t len) {
@@ -41,14 +51,15 @@ void applyAndRestart() {
     strlcpy(settings.wifiPassword, manager->getWiFiPass().c_str(), sizeof(settings.wifiPassword));
   }
 
-  strlcpy(settings.githubUser, userParam->getValue(), sizeof(settings.githubUser));
+  copyTrimmed(settings.githubUser, sizeof(settings.githubUser), userParam->getValue());
   // The token field starts empty so the saved token is never shown on the page.
   // Empty keeps the old token, a single "-" removes it.
-  const char* token = tokenParam->getValue();
+  char token[sizeof(settings.githubToken)];
+  copyTrimmed(token, sizeof(token), tokenParam->getValue());
   if (strcmp(token, "-") == 0) settings.githubToken[0] = '\0';
   else if (token[0] != '\0') strlcpy(settings.githubToken, token, sizeof(settings.githubToken));
-  settings.latitude = parseCoordinate(latParam->getValue());
-  settings.longitude = parseCoordinate(lonParam->getValue());
+  settings.latitude = parseCoordinate(latParam->getValue(), 90);
+  settings.longitude = parseCoordinate(lonParam->getValue(), 180);
   if (isnan(settings.latitude) || isnan(settings.longitude)) {
     settings.latitude = settings.longitude = NAN;  // half a coordinate is no coordinate
   }
