@@ -26,6 +26,7 @@ const char kNoAccess[] = "Token lacks access";
 const char kRateLimited[] = "Rate limited";
 const char kUserNotFound[] = "User not found";
 const char kNoConnection[] = "No connection";
+const char kBadReply[] = "Bad reply";
 
 bool fail(GithubData& data, const char* reason) {
   Serial.printf("[github] %s\n", reason);
@@ -243,7 +244,10 @@ bool fetchPublicCalendar(GithubData& data) {
   }
   http.end();
 
-  if (parser->lastDay < 0) return fail(data, "Bad reply");
+  if (parser->lastDay < 0) return fail(data, kBadReply);
+  // The page lists all the Sundays, then all the Mondays and so on, so a
+  // download that stops early still looks like a calendar, just with days missing.
+  if (!parser->done) return fail(data, kNoConnection);
 
   // Same layout as the GraphQL path: columns are Sunday-to-Saturday weeks,
   // the last one is the current week and ends at the newest day on the page.
@@ -369,7 +373,7 @@ bool fetchGithub(GithubData& data) {
   const DeserializationError err =
       deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
   http.end();
-  if (err) return fail(data, "Bad reply");
+  if (err) return fail(data, kBadReply);
 
   if (doc["data"]["user"].isNull()) {
     const char* type = doc["errors"][0]["type"] | "";
@@ -380,6 +384,7 @@ bool fetchGithub(GithubData& data) {
 
   JsonObject calendar = doc["data"]["user"]["contributionsCollection"]["contributionCalendar"];
   JsonArray weeks = calendar["weeks"];
+  if (weeks.size() == 0) return fail(data, kBadReply);  // keep the old grid, don't blank it
 
   // If the API ever returns more weeks than fit, keep the most recent ones.
   const size_t weekTotal = weeks.size();
