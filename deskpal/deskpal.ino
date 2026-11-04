@@ -413,9 +413,13 @@ void setup() {
   Serial.println("deskpal starting");
 
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  // display.begin() only sets up memory and cannot tell whether a screen is
+  // connected, so ask the bus directly.
+  Wire.beginTransmission(OLED_ADDRESS);
+  const bool oledAnswered = Wire.endTransmission() == 0;
   // The last `false` tells the library not to restart Wire with default pins,
   // since we already started it on the pins above.
-  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS, true, false)) {
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS, true, false) || !oledAnswered) {
     // Keep running anyway: the serial log still works and helps find the problem.
     Serial.println("OLED not found. Check wiring and the I2C address (0x3C).");
   }
