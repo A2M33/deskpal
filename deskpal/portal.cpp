@@ -109,11 +109,13 @@ void startPortal() {
     manager->setSaveParamsCallback([] { saveRequested = true; });
   }
 
-  Serial.printf("[portal] open: join Wi-Fi \"%s\" and go to 192.168.4.1\n", PORTAL_AP_NAME);
-  manager->startConfigPortal(PORTAL_AP_NAME);
+  // Set before the portal touches the Wi-Fi, so the network task cannot start
+  // a new request while the radio is being switched over.
   active = true;
   saveRequested = false;
   openedAtMs = millis();
+  Serial.printf("[portal] open: join Wi-Fi \"%s\" and go to 192.168.4.1\n", PORTAL_AP_NAME);
+  manager->startConfigPortal(PORTAL_AP_NAME);
 }
 
 bool portalActive() { return active; }
