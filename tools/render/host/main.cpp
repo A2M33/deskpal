@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
   local.tm_sec = 7;
   local.tm_wday = weekday(2026, 10, 29);  // not mktime(): that would depend on the PC's time zone
   status.screen = SCREEN_CLOCK;
-  drawClockScreen(display, status, &local);
+  drawClockScreen(display, status, &local, true);
   ok &= writePbm(display, out, "clock");
 
   // Weather: 18 C, partly cloudy (WMO code 2), wind 9 km/h, fetched 4 minutes ago.
@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
   status.screen = SCREEN_CLOCK;
   for (int second = 7; second <= 10; second++) {
     local.tm_sec = second;
-    drawClockScreen(display, status, &local);
+    drawClockScreen(display, status, &local, true);
     addFrame(1000);
   }
   status.screen = SCREEN_WEATHER;

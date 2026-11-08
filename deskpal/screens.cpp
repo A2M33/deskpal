@@ -228,12 +228,20 @@ void drawBootScreen(Adafruit_SSD1306& d) {
   printCentered(d, 44, "starting...");
 }
 
-void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTime) {
+void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTime,
+                     bool timeSynced) {
   drawHeader(d, "Clock", s);
 
   if (localTime == nullptr) {
-    if (!s.wifiConnected) drawConnecting(d);
-    else printCentered(d, kBodyMiddle, "Syncing time...");
+    if (!s.wifiConnected) {
+      drawConnecting(d);
+    } else if (!timeSynced) {
+      printCentered(d, kBodyMiddle, "Syncing time...");
+    } else {
+      // NTP is done, but with no TIMEZONE set the offset comes with the weather.
+      printCentered(d, kBodyMiddle - 6, "Time zone unknown");
+      printCentered(d, kBodyMiddle + 6, "until weather loads");
+    }
     return;
   }
 

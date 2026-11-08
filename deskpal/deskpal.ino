@@ -369,7 +369,7 @@ void drawCurrentScreen(unsigned long now) {
   } else switch (currentScreen) {
     case SCREEN_CLOCK: {
       tm localTime;
-      drawClockScreen(display, status, getClock(localTime) ? &localTime : nullptr);
+      drawClockScreen(display, status, getClock(localTime) ? &localTime : nullptr, clockSynced());
       break;
     }
     case SCREEN_WEATHER: {

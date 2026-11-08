@@ -188,6 +188,8 @@ The setup portal's Wi-Fi network has no password. Anyone nearby can join it whil
 
 **The clock is off by a few hours.** If you set `TIMEZONE`, check the string: POSIX time zones flip the sign, so UTC+1 is written `-1`. `secrets.example.h` lists a few examples. Without `TIMEZONE`, the clock follows the weather location; if the IP lookup picked the wrong city, set your coordinates.
 
+**The clock says "Time zone unknown".** deskpal has the time from NTP but no time zone yet. Without `TIMEZONE`, it gets the offset from the first weather reply, so check the weather screen for an error. Set `TIMEZONE` in `secrets.h` if your network blocks ip-api.com or Open-Meteo.
+
 **The weather shows the wrong city.** The IP lookup guesses from your provider's network. Set your coordinates in the portal or in `secrets.h`.
 
 **The GitHub screen shows an error.**

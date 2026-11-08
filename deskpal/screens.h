@@ -20,7 +20,10 @@ struct StatusInfo {
 // Each draw function clears the buffer and draws one full screen.
 // Call display.display() afterwards to send it to the OLED.
 void drawBootScreen(Adafruit_SSD1306& d);
-void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTime);
+// localTime is null while the time is not known yet; timeSynced then tells
+// "waiting for NTP" apart from "waiting for the time zone".
+void drawClockScreen(Adafruit_SSD1306& d, const StatusInfo& s, const tm* localTime,
+                     bool timeSynced);
 void drawWeatherScreen(Adafruit_SSD1306& d, const StatusInfo& s, const WeatherData& w,
                        unsigned long nowMs);
 void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading& r,
