@@ -21,7 +21,7 @@ import tempfile
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+    from PIL import Image, ImageChops, ImageDraw, ImageFilter
 except ImportError:
     sys.exit("Pillow is missing: pip install pillow")
 
@@ -31,14 +31,8 @@ SKETCH = REPO / "deskpal"
 DOCS = REPO / "docs"
 
 OLED_W, OLED_H = 128, 64
-# (pbm name, label in the combined image or None to leave it out)
-SCREENS = [
-    ("clock", "Clock"),
-    ("weather", "Weather"),
-    ("room", "Room"),
-    ("github", "GitHub"),
-    ("portal", None),
-]
+# The 2x2 sheet in the README (docs/screens.png) is composed by tools/banner/render.py.
+SCREENS = ["clock", "weather", "room", "github", "portal"]
 
 # ---------- Look ----------
 SCALE = 6                     # screen pixels -> image pixels
@@ -54,12 +48,7 @@ BEZEL_RADIUS = 30
 GLOW_RADIUS = 5
 GLOW_STRENGTH = 0.55
 
-CARD = (15, 18, 22)
-LABEL = (176, 184, 194)
-LABEL_SIZE = 30
-CARD_PAD = 44
-TILE_GAP = 40
-LABEL_GAP = 14
+CARD = (15, 18, 22)            # GIF background
 
 
 # ---------- Build ----------
@@ -179,37 +168,6 @@ def oled_tile(pixels):
     return tile
 
 
-def load_font(size):
-    try:
-        return ImageFont.load_default(size=size)  # Pillow 10.1+
-    except TypeError:
-        pass
-    for name in ("DejaVuSans.ttf", "segoeui.ttf", "arial.ttf", "Helvetica.ttc"):
-        try:
-            return ImageFont.truetype(name, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
-def combined(tiles):
-    """2x2 grid of labelled tiles on a dark rounded card."""
-    font = load_font(LABEL_SIZE)
-    tw, th = tiles[0][1].size
-    label_h = LABEL_GAP + LABEL_SIZE + 6
-    w = 2 * CARD_PAD + 2 * tw + TILE_GAP
-    h = 2 * CARD_PAD + 2 * (th + label_h) + TILE_GAP
-    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle((0, 0, w - 1, h - 1), 36, fill=CARD)
-    for i, (label, tile) in enumerate(tiles):
-        x = CARD_PAD + (i % 2) * (tw + TILE_GAP)
-        y = CARD_PAD + (i // 2) * (th + label_h + TILE_GAP)
-        img.alpha_composite(tile, (x, y))
-        d.text((x + tw / 2, y + th + LABEL_GAP), label, fill=LABEL, font=font, anchor="mt")
-    return img
-
-
 def rotation_gif(frames, path):
     """One pass through the screen rotation as an animated GIF, at half size.
 
@@ -247,22 +205,16 @@ def main():
     # Everything built goes to a temporary folder, so nothing lands in the repo.
     with tempfile.TemporaryDirectory(prefix="deskpal-render-", ignore_cleanup_errors=True) as tmp:
         frames = build_and_run(cxx, gfx, json, Path(tmp))
-        tiles = []
-        for name, label in SCREENS:
+        for name in SCREENS:
             tile = oled_tile(read_pbm(frames / f"{name}.pbm"))
             path = out / f"screen-{name}.png"
             tile.save(path, optimize=True)
             print("wrote", path)
-            if label:
-                tiles.append((label, tile))
         if args.gif:
             path = out / "rotation.gif"
             rotation_gif(frames, path)
             print("wrote", path)
-
-    path = out / "screens.png"
-    combined(tiles).save(path, optimize=True)
-    print("wrote", path)
+    print("Now run tools/banner/render.py to update docs/screens.png and docs/banner.png.")
 
 
 if __name__ == "__main__":
