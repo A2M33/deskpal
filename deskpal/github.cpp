@@ -252,6 +252,13 @@ bool fetchPublicCalendar(GithubData& data) {
       continue;
     }
     const int n = stream->read(chunk, available < (int)sizeof(chunk) ? available : sizeof(chunk));
+    if (n <= 0) {
+      // A read error. Wait like above instead of retrying at full speed: on
+      // core 0 a busy loop would trip the task watchdog after 5 seconds.
+      if (millis() - lastDataMs > HTTP_TIMEOUT_MS) break;
+      delay(10);
+      continue;
+    }
     for (int i = 0; i < n; i++) parser->feed((char)chunk[i]);
     lastDataMs = millis();
   }
@@ -394,7 +401,8 @@ bool fetchGithub(GithubData& data) {
   size_t index = 0;
   for (JsonObject week : weeks) {
     if (index++ < skip) continue;
-    for (JsonObject day : week["contributionDays"].as<JsonArray>()) {
+    JsonArray days = week["contributionDays"];
+    for (JsonObject day : days) {
       const int weekday = day["weekday"] | -1;
       if (weekday < 0 || weekday > 6) continue;
       const int count = day["contributionCount"] | 0;
