@@ -19,13 +19,22 @@ bool saveRequested = false;
 unsigned long openedAtMs = 0;
 
 // Empty text means "not set" (NAN), so the location comes from the IP address
-// again. So does anything Open-Meteo would refuse, like a latitude of 135.
+// again. So does anything Open-Meteo would refuse, like a latitude of 135, or
+// text that is not a plain number. A decimal comma ("52,52") is accepted:
+// strtof() alone would stop at the comma and quietly keep only "52".
 float parseCoordinate(const char* text, float limit) {
-  while (*text == ' ') text++;
-  if (*text == '\0') return NAN;
+  char number[16];
+  strlcpy(number, text, sizeof(number));
+  for (char* c = number; *c != '\0'; c++) {
+    if (*c == ',') *c = '.';
+  }
+  const char* start = number;
+  while (*start == ' ') start++;
+  if (*start == '\0') return NAN;
   char* end = nullptr;
-  const float value = strtof(text, &end);
-  return end == text || fabsf(value) > limit ? NAN : value;
+  const float value = strtof(start, &end);
+  while (*end == ' ') end++;
+  return end == start || *end != '\0' || fabsf(value) > limit ? NAN : value;
 }
 
 // Phone keyboards often add a space after a word, and a GitHub user name or
