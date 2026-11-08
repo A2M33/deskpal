@@ -258,6 +258,14 @@ bool resolveLocation(Location& location) {
   return true;
 }
 
+// After each request, so the serial log shows how close the network task came
+// to running out of stack or heap. Worth a look after changing the fetch code.
+void logMemory() {
+  Serial.printf("[net] free heap %u bytes (lowest %u), task stack never below %u bytes free\n",
+                (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMinFreeHeap(),
+                (unsigned)uxTaskGetStackHighWaterMark(nullptr));
+}
+
 // Web requests block for a few seconds (longer if the server is slow, capped by
 // HTTP_TIMEOUT_MS and HTTPS_HANDSHAKE_S), so they live in this task on core 0.
 // Arduino's loop() runs on core 1 and keeps drawing while a request is in flight.
@@ -291,6 +299,7 @@ void networkTask(void*) {
         weather = myWeather;
         xSemaphoreGive(dataMutex);
         onlineDataChanged = true;
+        logMemory();
       }
 
       // With a token, the GraphQL date range needs the real date (UTC, so no
@@ -304,6 +313,7 @@ void networkTask(void*) {
         github = myGithub;
         xSemaphoreGive(dataMutex);
         onlineDataChanged = true;
+        logMemory();
       }
     }
     vTaskDelay(pdMS_TO_TICKS(500));
