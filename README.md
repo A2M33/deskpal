@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://github.com/A2M33/deskpal/actions/workflows/build.yml/badge.svg"></a>
   <img alt="ESP32" src="https://img.shields.io/badge/board-ESP32-e7352c">
-  <img alt="Runs in Wokwi" src="https://img.shields.io/badge/simulator-Wokwi-6e2bc2">
+  <img alt="Wokwi simulator files included" src="https://img.shields.io/badge/simulator-Wokwi-6e2bc2">
   <a href="https://github.com/A2M33/deskpal/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-3fb950"></a>
 </p>
 
@@ -32,33 +32,30 @@ The button does three things:
 
 If Wi-Fi drops or a website doesn't answer, deskpal keeps showing the last data it got and tells you how old it is. The ESP32 reconnects to Wi-Fi by itself. The web requests run on the ESP32's second core, so the clock and the button keep working while a slow server answers.
 
-## Open in Wokwi
+## Run it in Wokwi
 
 [Wokwi](https://wokwi.com) simulates the ESP32, the screen, the sensor and the button in your browser, with internet access. You don't need any hardware.
 
-<!-- TODO: replace the link below with the public Wokwi project URL once it is published. -->
-<!-- [Open deskpal in Wokwi](https://wokwi.com/projects/TODO) -->
-
-To run it:
-
-1. Open the deskpal project in Wokwi.
-2. Press the green play button. The first build takes about a minute while Wokwi compiles the code and installs the libraries.
-3. Watch the screen. The clock and weather appear after a few seconds, once deskpal has joined the network and looked up your location.
-4. Click the button in the diagram to switch screens. Hold it about a second to pause the rotation.
-5. Click the DHT22 while the simulation runs and drag its sliders to change the room readings.
-
-deskpal joins Wokwi's virtual Wi-Fi network, `Wokwi-GUEST`, by default. On that network the setup portal stays closed, because Wokwi has nowhere to show it and there is nothing to set up. The GitHub screen shows `@A2M33` from the public contributions page. To show your own account, add a `secrets.h` with `#define GITHUB_USER "your-name"`.
-
-If you want your own copy of the project instead:
+I haven't published a public Wokwi project, so there is no one-click link. The repo has the files Wokwi needs: `diagram.json` holds the parts and wiring, `libraries.txt` lists the libraries, and `deskpal/` has the code. Setting up your own copy takes a few minutes:
 
 1. Go to [wokwi.com](https://wokwi.com), sign in, and start a new project with the **ESP32** board (Arduino template).
 2. Open the `sketch.ino` tab and replace its contents with `deskpal/deskpal.ino` from this repo.
 3. Open the `diagram.json` tab and replace its contents with `diagram.json` from this repo. The parts and wires appear on the right.
 4. Add the libraries. Click the small arrow next to the file tabs, choose **New file**, name it `libraries.txt`, and paste in `libraries.txt` from this repo. You can also add each one from the **Library Manager** tab.
 5. Add the remaining code files the same way, with the exact same names: `config.h`, `settings.h`, `settings.cpp`, `portal.h`, `portal.cpp`, `button.h`, `room.h`, `weather.h`, `weather.cpp`, `github.h`, `github.cpp`, `screens.h`, `screens.cpp`.
-6. Press the green play button.
+6. Press the green play button. Wokwi compiles the code and installs the libraries first, so the first start takes a while.
+
+Once it runs:
+
+- The clock and weather show up after deskpal has joined the network and looked up your location.
+- Click the button in the diagram to switch screens. Hold it about a second to pause the rotation.
+- Click the DHT22 and drag its sliders to change the room readings.
+
+deskpal joins Wokwi's virtual Wi-Fi network, `Wokwi-GUEST`, by default. Wokwi has nowhere to show the setup portal, so on that network deskpal waits 2 minutes before opening it, and the connection comes up long before that. The GitHub screen shows `@A2M33` from the public contributions page. To show your own account, add a `secrets.h` with `#define GITHUB_USER "your-name"`.
 
 You can put a GitHub token in a Wokwi `secrets.h` too, but once you save the project, anyone with the link can read it. Revoke that token when you finish testing.
+
+The [Wokwi extension for VS Code](https://docs.wokwi.com/vscode/getting-started) and `wokwi-cli` run the same `diagram.json` against a local build. Build with the `arduino-cli compile` line from [Setup in Arduino IDE](#setup-in-arduino-ide), adding `--output-dir build`; `wokwi.toml` points to the files that end up in `build/`.
 
 ## Parts
 
@@ -130,7 +127,7 @@ The portal lets you set up deskpal from your phone, without editing code.
 1. Hold the button for 5 seconds. The screen shows `Setup` and the name of a new Wi-Fi network, `deskpal-setup`.
 2. Join `deskpal-setup` on your phone or laptop. A setup page opens by itself on most phones. If it doesn't, open `192.168.4.1` in a browser.
 3. Tap **Configure WiFi**, pick your network and type its password.
-4. Fill in the extra fields if you want: GitHub user, GitHub token, latitude and longitude. Leave the token field empty to keep the saved token, or type `-` to remove it. Leave both coordinates empty to use the IP lookup.
+4. Fill in the extra fields if you want: GitHub user, GitHub token, latitude and longitude. Leave the token field empty to keep the saved token, or type `-` to remove it. Leave both coordinates empty to use the IP lookup. Coordinates take a decimal point or a decimal comma (`52.52` or `52,52`); deskpal ignores anything that isn't a plain number and falls back to the IP lookup.
 5. Tap **Save**. deskpal stores the settings in its flash memory and restarts.
 
 deskpal also opens the portal by itself after a restart when it has no network name, or when it can't join the saved network within 30 seconds. A new board with no `secrets.h` tries `Wokwi-GUEST` first and opens the portal after 2 minutes. If you save nothing within 5 minutes, it restarts and tries the saved network again.
