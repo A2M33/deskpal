@@ -1,0 +1,31 @@
+/* The OLED frame shared by banner.html and screens.html. Uses only the variables from tokens.css.
+   The screen images come from tools/render unchanged; this only crops away their old bezel
+   (22 px at full size) and draws a new one in the system palette. */
+
+.bezel {
+  --k: 0.5;                                   /* image scale: 864x480 source -> 432x240 */
+  position: relative;
+  display: inline-block;
+  padding: var(--s4);
+  background: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 70%, var(--ink-2));
+  border-radius: var(--r-panel);
+}
+.glass {
+  width: calc(820px * var(--k));
+  height: calc(436px * var(--k));
+  overflow: hidden;
+  border-radius: var(--r-panel);    /* covers the source's rounded glass corners */
+}
+.glass img {
+  display: block;
+  width: calc(864px * var(--k));
+  height: calc(480px * var(--k));
+  margin: calc(-22px * var(--k));
+}
+.bezel .lamp {               /* power LED, centred in the bottom edge of the bezel */
+  position: absolute;
+  bottom: calc(var(--s4) / 2 - 0.35em);
+  right: var(--s4);
+  font-size: var(--t-sm);
+}

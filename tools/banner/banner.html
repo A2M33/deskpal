@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>deskpal banner</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="oled.css">
+<link rel="stylesheet" href="banner.css">
+</head>
+<body>
+<main class="sheet">
+  <div class="top">
+    <header class="head">
+      <img class="icon" src="icon.png" width="104" height="104" alt="">
+      <div>
+        <h1>deskpal</h1>
+        <p class="sub">A desk display on an ESP32. It shows the time, the weather, your room's temperature and your GitHub activity.</p>
+      </div>
+    </header>
+
+    <figure class="bezel">
+      <span class="lamp" data-state="live"></span>
+      <div class="glass"><img src="../../docs/screen-clock.png" alt=""></div>
+    </figure>
+  </div>
+
+  <section class="readings">
+    <div class="cell">
+      <p class="reading">128×64<small>px</small></p>
+      <p class="tag">SSD1306 OLED, 0.96 inch</p>
+    </div>
+    <div class="cell">
+      <p class="reading">DHT22</p>
+      <p class="tag">Room temperature and humidity</p>
+    </div>
+    <div class="cell">
+      <p class="reading">62%<small>of 1.9 MB</small></p>
+      <p class="tag">Flash used by the firmware</p>
+    </div>
+    <div class="cell">
+      <p class="reading">Wokwi</p>
+      <p class="tag">Simulator wiring included</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

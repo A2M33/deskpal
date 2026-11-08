@@ -1,0 +1,20 @@
+/* deskpal screen sheet for the README. Uses only the variables from tokens.css. */
+
+html, body { width: fit-content; }
+body { padding: var(--s5); }
+figure { margin: 0; }
+
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: var(--s5) var(--s6);
+  padding: var(--s6);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+figcaption {
+  margin-top: var(--s3);
+  font-size: var(--t-md);
+  color: var(--ink-2);
+}

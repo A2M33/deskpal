@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/header.svg" alt="deskpal" width="100%"></p>
+<p align="center"><img src="docs/banner.png" alt="deskpal banner: the clock screen showing 14:32 on Thu 29 Oct 2026 on the OLED, next to the app icon and the line &quot;A desk display on an ESP32&quot;. Readings below: 128x64 SSD1306 OLED, DHT22 room sensor, 62% of 1.9 MB flash used, Wokwi simulator wiring included." width="100%"></p>
 
 <p align="center">
   <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://github.com/A2M33/deskpal/actions/workflows/build.yml/badge.svg"></a>
@@ -11,7 +11,7 @@ A small desk display built on an ESP32. It shows the time, the weather outside, 
 
 An ESP32 is a cheap microcontroller board (around $5) with Wi-Fi built in. You program it from your computer over USB, and it runs your code on its own as soon as it gets power.
 
-![The four deskpal screens: clock, weather, room and GitHub](docs/screens.png)
+![The four deskpal screens as rendered from the firmware: the clock at 14:32, the weather in Tehran at 18.0 °C and partly cloudy, the room at 23.4 °C and 41% humidity marked Comfortable, and a 12-week GitHub contribution grid with 262 contributions](docs/screens.png)
 
 I rendered these on my PC from the drawing code in `deskpal/screens.cpp`, so they match the OLED pixel for pixel. `tools/render` has the script.
 
