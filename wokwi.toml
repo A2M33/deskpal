@@ -1,6 +1,6 @@
-# Only needed for the Wokwi extension in VS Code (the website ignores this file).
+# Used by the Wokwi extension in VS Code and by wokwi-cli (the website ignores this file).
 # Build first, from this folder:
-#   arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir build deskpal
+#   arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --output-dir build deskpal
 [wokwi]
 version = 1
 firmware = 'build/deskpal.ino.merged.bin'

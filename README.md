@@ -106,16 +106,17 @@ The OLED's I2C address is set to `0x3C` in `config.h`. A few screens use `0x3D`;
    - WiFiManager (by tzapu)
 4. Open `deskpal/deskpal.ino`. The IDE shows the other files as tabs.
 5. Optional: copy `deskpal/secrets.example.h` to `deskpal/secrets.h` and fill in your Wi-Fi name and password, GitHub username, and anything else you want to change. Every line is optional; delete a line to keep the default. Git ignores `secrets.h`, so your password stays on your computer. You can skip this step and use the [setup portal](#setup-portal) after uploading.
-6. Pick **Tools > Board > esp32 > ESP32 Dev Module** and the right port under **Tools > Port**, then click Upload.
-7. Open **Tools > Serial Monitor** at 115200 baud to watch the log.
+6. Pick **Tools > Board > esp32 > ESP32 Dev Module** and the right port under **Tools > Port**.
+7. Under **Tools > Partition Scheme**, pick **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**, then click Upload. With the default scheme the app gets 1.25 MB of flash and deskpal fills 94% of it. Minimal SPIFFS gives it 1.9 MB (62% used). deskpal keeps its settings in the NVS area, which sits at the same address in both layouts, so switching keeps what the portal saved.
+8. Open **Tools > Serial Monitor** at 115200 baud to watch the log.
 
 If you prefer the command line:
 
 ```sh
 arduino-cli core install esp32:esp32
 arduino-cli lib install "Adafruit SSD1306" "Adafruit GFX Library" "DHT sensor library" "ArduinoJson" "WiFiManager"
-arduino-cli compile --fqbn esp32:esp32:esp32 deskpal
-arduino-cli upload --fqbn esp32:esp32:esp32 -p COM3 deskpal
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs deskpal
+arduino-cli upload --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs -p COM3 deskpal
 ```
 
 Replace `COM3` with your port (`/dev/ttyUSB0` or similar on Linux and macOS).
