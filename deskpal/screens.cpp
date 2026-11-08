@@ -343,7 +343,7 @@ void drawRoomScreen(Adafruit_SSD1306& d, const StatusInfo& s, const RoomReading&
 
 void drawGithubScreen(Adafruit_SSD1306& d, const StatusInfo& s, const GithubData& g,
                       unsigned long nowMs) {
-  char title[20];
+  char title[sizeof(settings.githubUser) + 1];  // drawHeader() shortens it to fit
   snprintf(title, sizeof(title), "@%s", settings.githubUser);
   drawHeader(d, title, s);
 
