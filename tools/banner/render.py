@@ -21,13 +21,13 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="msedge")
 
-        page = browser.new_page(viewport={"width": 1280, "height": 640}, color_scheme="light")
+        page = browser.new_page(viewport={"width": 1280, "height": 640}, color_scheme="dark")
         page.goto((HERE / "banner.html").as_uri())
         page.evaluate("document.fonts.ready")
         page.screenshot(path=str(DOCS / "banner.png"))
         print(DOCS / "banner.png")
 
-        page = browser.new_page(viewport={"width": 800, "height": 400}, color_scheme="light",
+        page = browser.new_page(viewport={"width": 800, "height": 400}, color_scheme="dark",
                                 device_scale_factor=2)
         page.goto((HERE / "screens.html").as_uri())
         page.evaluate("document.fonts.ready")

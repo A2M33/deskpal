@@ -7,8 +7,8 @@
   position: relative;
   display: inline-block;
   padding: var(--s4);
-  background: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--ink) 70%, var(--ink-2));
+  background: #060a14;
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
 }
 .glass {
@@ -23,7 +23,7 @@
   height: calc(480px * var(--k));
   margin: calc(-22px * var(--k));
 }
-.bezel .lamp {               /* power LED, centred in the bottom edge of the bezel */
+.bezel .pad {                /* power LED, centred in the bottom edge of the bezel */
   position: absolute;
   bottom: calc(var(--s4) / 2 - 0.35em);
   right: var(--s4);

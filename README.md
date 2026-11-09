@@ -1,10 +1,10 @@
-<p align="center"><img src="docs/banner.png" alt="deskpal banner: the clock screen showing 14:32 on Thu 29 Oct 2026 on the OLED, next to the app icon and the line &quot;A desk display on an ESP32&quot;. Readings below: 128x64 SSD1306 OLED, DHT22 room sensor, 62% of 1.9 MB flash used, Wokwi simulator wiring included." width="100%"></p>
+<p align="center"><img src="docs/banner.png" alt="deskpal banner: the OLED module drawn as a board, its clock screen showing 14:32 on Thu 29 Oct 2026. Traces run from the SCL and SDA pins to a note: I2C to the ESP32, SCL to GPIO 22, SDA to GPIO 21." width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://github.com/A2M33/deskpal/actions/workflows/build.yml/badge.svg"></a>
-  <img alt="ESP32" src="https://img.shields.io/badge/board-ESP32-e7352c">
-  <img alt="Wokwi simulator files included" src="https://img.shields.io/badge/simulator-Wokwi-6e2bc2">
-  <a href="https://github.com/A2M33/deskpal/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-3fb950"></a>
+  <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://img.shields.io/github/actions/workflow/status/A2M33/deskpal/build.yml?label=build&style=flat-square&labelColor=111a2d&color=22304b"></a>
+  <img alt="ESP32" src="https://img.shields.io/badge/board-ESP32-22304b?style=flat-square&labelColor=111a2d&color=22304b">
+  <img alt="Wokwi simulator files included" src="https://img.shields.io/badge/simulator-Wokwi-22304b?style=flat-square&labelColor=111a2d&color=22304b">
+  <a href="https://github.com/A2M33/deskpal/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-22304b?style=flat-square&labelColor=111a2d&color=22304b"></a>
 </p>
 
 A small desk display built on an ESP32. It shows the time, the weather outside, the temperature and humidity in your room, and your recent GitHub activity on a 0.96" OLED screen.
