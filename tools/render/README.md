@@ -24,8 +24,6 @@ python -m venv ../deskpal-render-venv                  # outside the repo
 
 The script looks for the libraries in `$ARDUINO_DIRECTORIES_USER/libraries`, then `~/Documents/Arduino/libraries` and `~/Arduino/libraries`. If yours are elsewhere, pass `--libraries <folder>`. Use `--cxx "<command>"` to pick a compiler.
 
-Then run `python tools/banner/render.py` (Playwright with Microsoft Edge) to rebuild `docs/screens.png`, the 2x2 sheet in the main README, and `docs/banner.png` from the new screen images.
-
 The build happens in a temporary folder that is deleted afterwards. Only the images in `docs/` change.
 
 ### Animated GIF

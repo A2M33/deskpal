@@ -1,30 +1,24 @@
-<p align="center"><img src="docs/banner.png" alt="deskpal banner: the OLED module drawn as a board, its clock screen showing 14:32 on Thu 29 Oct 2026. Traces run from the SCL and SDA pins to a note: I2C to the ESP32, SCL to GPIO 22, SDA to GPIO 21." width="100%"></p>
+# deskpal
 
-<p align="center">
-  <a href="https://github.com/A2M33/deskpal/actions/workflows/build.yml"><img alt="build" src="https://img.shields.io/github/actions/workflow/status/A2M33/deskpal/build.yml?label=build&style=flat-square&labelColor=111a2d&color=22304b"></a>
-  <img alt="ESP32" src="https://img.shields.io/badge/board-ESP32-22304b?style=flat-square&labelColor=111a2d&color=22304b">
-  <img alt="Wokwi simulator files included" src="https://img.shields.io/badge/simulator-Wokwi-22304b?style=flat-square&labelColor=111a2d&color=22304b">
-  <a href="https://github.com/A2M33/deskpal/blob/main/LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-22304b?style=flat-square&labelColor=111a2d&color=22304b"></a>
-</p>
+<img src="docs/screen-clock.png" alt="The clock screen: 14:32 and 07 seconds, Thu 29 Oct 2026" width="49%"> <img src="docs/screen-weather.png" alt="The weather screen for Tehran: 18.0 °C, partly cloudy, wind 9 km/h, updated 4 min ago" width="49%">
+<img src="docs/screen-room.png" alt="The room screen: 23.4 °C and 41 % humidity, labelled Comfortable" width="49%"> <img src="docs/screen-github.png" alt="The GitHub screen for @A2M33: a contribution grid with bigger squares on busier days, 262 contributions in total, data 12 minutes old" width="49%">
 
-A small desk display built on an ESP32. It shows the time, the weather outside, the temperature and humidity in your room, and your recent GitHub activity on a 0.96" OLED screen.
+deskpal is a small desk display built on an ESP32. Its 0.96" OLED screen shows the time, the weather outside, the temperature and humidity in your room, and your recent GitHub activity.
 
 An ESP32 is a cheap microcontroller board (around $5) with Wi-Fi built in. You program it from your computer over USB, and it runs your code on its own as soon as it gets power.
 
-![The four deskpal screens as rendered from the firmware: the clock at 14:32, the weather in Tehran at 18.0 °C and partly cloudy, the room at 23.4 °C and 41% humidity marked Comfortable, and a 12-week GitHub contribution grid with 262 contributions](docs/screens.png)
-
-I rendered these on my PC from the drawing code in `deskpal/screens.cpp`, so they match the OLED pixel for pixel. `tools/render` has the script.
+The pictures above come from the firmware's own drawing code in `deskpal/screens.cpp`. The script in `tools/render` compiles that code on a PC and feeds it sample data, so each pixel matches what the OLED shows.
 
 ## What it shows
 
 The display rotates through four screens, eight seconds each.
 
 1. **Clock**: time and date, synced from the internet (NTP). deskpal works out your time zone from the weather location, daylight saving included. Set `CLOCK_12H` for a 12-hour clock.
-2. **Weather**: current temperature, a short description, a small icon and wind speed from [Open-Meteo](https://open-meteo.com). Open-Meteo needs no account or API key. The data refreshes every 15 minutes. With no coordinates set, deskpal finds your city from your IP address (see [Location](#location)). Set `TEMP_FAHRENHEIT` for °F.
-3. **Room**: temperature and humidity from a DHT22 sensor, plus a comfort label like "Comfortable" or "Dry".
-4. **GitHub**: your contribution grid for the last 12 weeks, plus the total. Busier days get bigger squares, since the screen only has one color. Refreshes every 30 minutes. It works without a token (see [GitHub data](#github-data)).
+2. **Weather**: current temperature, a short description, a small icon and wind speed from [Open-Meteo](https://open-meteo.com), which needs no account or API key. deskpal refreshes the data every 15 minutes. With no coordinates set, it finds your city from your IP address (see [Location](#location)). Set `TEMP_FAHRENHEIT` for °F.
+3. **Room**: temperature and humidity from a DHT22 sensor, with a comfort label like "Comfortable" or "Dry".
+4. **GitHub**: your contribution grid for the last 12 weeks and the total. The screen has one colour, so busier days get bigger squares. deskpal refreshes it every 30 minutes, and it works without a token (see [GitHub data](#github-data)).
 
-The button does three things:
+The button:
 
 - **Press**: jump to the next screen.
 - **Hold about a second, then let go**: pause the rotation, or resume it. A pause icon appears in the top bar while rotation is off.
@@ -55,7 +49,7 @@ deskpal joins Wokwi's virtual Wi-Fi network, `Wokwi-GUEST`, by default. Wokwi ha
 
 You can put a GitHub token in a Wokwi `secrets.h` too, but once you save the project, anyone with the link can read it. Revoke that token when you finish testing.
 
-The [Wokwi extension for VS Code](https://docs.wokwi.com/vscode/getting-started) and `wokwi-cli` run the same `diagram.json` against a local build. Build with the `arduino-cli compile` line from [Setup in Arduino IDE](#setup-in-arduino-ide), adding `--output-dir build`; `wokwi.toml` points to the files that end up in `build/`.
+The [Wokwi extension for VS Code](https://docs.wokwi.com/vscode/getting-started) and `wokwi-cli` run the same `diagram.json` against a local build. Build with the `arduino-cli compile` line from [Setup in Arduino IDE](#setup-in-arduino-ide) and add `--output-dir build`. `wokwi.toml` points to the files that end up in `build/`.
 
 ## Parts
 
@@ -88,7 +82,7 @@ Total: about $20.
 
 The button needs no resistor, because the code turns on the ESP32's internal pull-up. If you use a bare DHT22 (4 pins, no board), put a 10 kΩ resistor between its data pin and 3V3.
 
-The OLED's I2C address is set to `0x3C` in `config.h`. A few screens use `0x3D`; the troubleshooting section covers that.
+`config.h` sets the OLED's I2C address to `0x3C`. A few screens use `0x3D`; see [Troubleshooting](#troubleshooting).
 
 ## Setup in Arduino IDE
 
@@ -102,12 +96,12 @@ The OLED's I2C address is set to `0x3C` in `config.h`. A few screens use `0x3D`;
    - ArduinoJson (by Benoit Blanchon, version 7)
    - WiFiManager (by tzapu)
 4. Open `deskpal/deskpal.ino`. The IDE shows the other files as tabs.
-5. Optional: copy `deskpal/secrets.example.h` to `deskpal/secrets.h` and fill in your Wi-Fi name and password, GitHub username, and anything else you want to change. Every line is optional; delete a line to keep the default. Git ignores `secrets.h`, so your password stays on your computer. You can skip this step and use the [setup portal](#setup-portal) after uploading.
+5. Optional: copy `deskpal/secrets.example.h` to `deskpal/secrets.h` and fill in your Wi-Fi name and password, your GitHub username and anything else you want to change. Each line is optional; delete a line to keep the default. Git ignores `secrets.h`, so your password stays on your computer. You can skip this step and use the [setup portal](#setup-portal) after uploading.
 6. Pick **Tools > Board > esp32 > ESP32 Dev Module** and the right port under **Tools > Port**.
 7. Under **Tools > Partition Scheme**, pick **Minimal SPIFFS (1.9MB APP with OTA/128KB SPIFFS)**, then click Upload. With the default scheme the app gets 1.25 MB of flash and deskpal fills 94% of it. Minimal SPIFFS gives it 1.9 MB (62% used). deskpal keeps its settings in the NVS area, which sits at the same address in both layouts, so switching keeps what the portal saved.
 8. Open **Tools > Serial Monitor** at 115200 baud to watch the log.
 
-If you prefer the command line:
+From the command line:
 
 ```sh
 arduino-cli core install esp32:esp32
@@ -125,9 +119,9 @@ The portal lets you set up deskpal from your phone, without editing code.
 <img src="docs/screen-portal.png" alt="The setup screen: join the deskpal-setup Wi-Fi, then open 192.168.4.1" width="400">
 
 1. Hold the button for 5 seconds. The screen shows `Setup` and the name of a new Wi-Fi network, `deskpal-setup`.
-2. Join `deskpal-setup` on your phone or laptop. A setup page opens by itself on most phones. If it doesn't, open `192.168.4.1` in a browser.
+2. Join `deskpal-setup` on your phone or laptop. Most phones open a setup page by themselves. If yours doesn't, open `192.168.4.1` in a browser.
 3. Tap **Configure WiFi**, pick your network and type its password.
-4. Fill in the extra fields if you want: GitHub user, GitHub token, latitude and longitude. Leave the token field empty to keep the saved token, or type `-` to remove it. Leave both coordinates empty to use the IP lookup. Coordinates take a decimal point or a decimal comma (`52.52` or `52,52`); deskpal ignores anything that isn't a plain number and falls back to the IP lookup.
+4. Fill in the extra fields if you want: GitHub user, GitHub token, latitude and longitude. Leave the token field empty to keep the saved token, or type `-` to remove it. Leave both coordinates empty to use the IP lookup. Coordinates take a decimal point or a decimal comma (`52.52` or `52,52`). If a field holds anything other than a plain number, deskpal ignores it and falls back to the IP lookup.
 5. Tap **Save**. deskpal stores the settings in its flash memory and restarts.
 
 deskpal also opens the portal by itself after a restart when it has no network name, or when it can't join the saved network within 30 seconds. A new board with no `secrets.h` tries `Wokwi-GUEST` first and opens the portal after 2 minutes. If you save nothing within 5 minutes, it restarts and tries the saved network again.
@@ -136,9 +130,9 @@ Settings saved in the portal win over the ones in `secrets.h`. The values in `se
 
 ## Location
 
-You don't have to tell deskpal where you are. If you set no coordinates, it asks [ip-api.com](https://ip-api.com) for the city of your internet connection, then asks Open-Meteo for the weather there. Open-Meteo also returns the local UTC offset, and deskpal sets the clock from it. Daylight saving changes reach the clock with the next weather update, within 15 minutes.
+You don't have to tell deskpal where you are. If you set no coordinates, it asks [ip-api.com](https://ip-api.com) for the city of your internet connection, then asks Open-Meteo for the weather there. Open-Meteo also returns the local UTC offset, and deskpal sets the clock from it. A daylight saving change reaches the clock with the next weather update, within 15 minutes.
 
-deskpal talks to ip-api.com over plain HTTP, because the free service has no HTTPS. The request contains nothing but your IP address, which every server you contact sees anyway. The guess is city-level and sometimes lands on your provider's city instead of yours.
+deskpal talks to ip-api.com over plain HTTP, because the free service has no HTTPS. The request contains your IP address and nothing else, and every server you contact sees that address anyway. The guess is city-level and sometimes lands on your provider's city instead of yours.
 
 To use a fixed place, set `WEATHER_LATITUDE` and `WEATHER_LONGITUDE` in `secrets.h`, or the coordinates in the portal. `WEATHER_PLACE` changes the title on the weather screen, and `TIMEZONE` fixes the clock's time zone. Anything you set yourself wins over the lookups.
 
@@ -146,13 +140,13 @@ To use a fixed place, set `WEATHER_LATITUDE` and `WEATHER_LONGITUDE` in `secrets
 
 Between 23:00 and 7:00, deskpal turns the screen's contrast down to the minimum. Change the hours with `NIGHT_START_HOUR` and `NIGHT_END_HOUR`, or set both to the same hour to turn night mode off. With `NIGHT_MODE NIGHT_OFF`, the screen switches off at night instead, and a button press wakes it for 30 seconds.
 
-OLED pixels wear out the more they glow, so a picture that never moves leaves a faint ghost after months. To spread the wear, deskpal moves the whole picture by one pixel every minute, through four positions. Set `PIXEL_SHIFT 0` to turn this off.
+OLED pixels wear out the longer they glow, so a picture that never moves leaves a faint ghost after months. deskpal moves the whole picture by one pixel every minute, through four positions, to spread the wear. Set `PIXEL_SHIFT 0` to turn this off.
 
 ## GitHub data
 
 Without a token, deskpal reads your public contributions page (`github.com/users/<name>/contributions`), the same calendar your profile shows. It reads the page in small pieces and keeps only the day cells it needs, so the 220 KB page never has to fit in memory. Private contributions show up only if you made them visible on your profile.
 
-With a token, deskpal uses the GitHub GraphQL API instead. That's the more stable choice, since GitHub can change its page layout at any time.
+With a token, deskpal uses the GitHub GraphQL API instead. The API is the more stable choice, since GitHub can change its page layout at any time.
 
 ### Getting a GitHub token
 
@@ -161,7 +155,7 @@ A read-only token for public data is enough.
 1. On GitHub, open **Settings > Developer settings > Personal access tokens > Fine-grained tokens**.
 2. Click **Generate new token**.
 3. Give it a name like `deskpal` and pick an expiration date.
-4. Under **Repository access**, choose **Public repositories**. Leave every permission at "No access".
+4. Under **Repository access**, choose **Public repositories**. Leave each permission at "No access".
 5. Click **Generate token** and copy it right away. GitHub shows it only once.
 6. Paste it into the setup portal, or put it in `secrets.h`:
    ```c
@@ -172,15 +166,15 @@ Set `GITHUB_USER` to the account whose grid you want. It doesn't have to be your
 
 ## A note on HTTPS
 
-deskpal fetches the weather and GitHub data over HTTPS, but it skips checking the servers' certificates (`setInsecure()` in the code). The connection is still encrypted. Skipping the check means someone controlling your network could pretend to be GitHub and capture your token. With a read-only token for public data, that risk is small. If you want full checking, look up `WiFiClientSecure::setCACert()` and add the root certificates for `api.github.com`, `github.com` and `api.open-meteo.com`. The location lookup uses plain HTTP; see [Location](#location).
+deskpal fetches the weather and GitHub data over HTTPS, but it skips checking the servers' certificates (`setInsecure()` in the code). The connection is still encrypted. Without the check, someone who controls your network could pretend to be GitHub and capture your token. With a read-only token for public data, that risk is small. If you want full checking, look up `WiFiClientSecure::setCACert()` and add the root certificates for `api.github.com`, `github.com` and `api.open-meteo.com`. The location lookup uses plain HTTP; see [Location](#location).
 
 The setup portal's Wi-Fi network has no password. Anyone nearby can join it while it is open and change the settings. The portal never shows the saved token, and it closes after 5 minutes.
 
 ## Troubleshooting
 
-**The screen stays black.** Check that SDA goes to GPIO 21 and SCL to GPIO 22; swapping them is the most common mistake. Then open the Serial Monitor: "OLED not found" means the ESP32 can't see the screen. Some screens use address `0x3D`, so try changing `OLED_ADDRESS` in `config.h`.
+**The screen stays black.** Check that SDA goes to GPIO 21 and SCL to GPIO 22; they are easy to swap. Then open the Serial Monitor: "OLED not found" means the ESP32 can't see the screen. Some screens use address `0x3D`, so try changing `OLED_ADDRESS` in `config.h`.
 
-**It says "Connecting to Wi-Fi" forever.** The ESP32 only works with 2.4 GHz Wi-Fi, not 5 GHz. Check the network name and password; both are case-sensitive. Hold the button for 5 seconds to enter them again in the setup portal.
+**It says "Connecting to Wi-Fi" forever.** The ESP32 works with 2.4 GHz Wi-Fi only, not 5 GHz. Check the network name and password; both are case-sensitive. Hold the button for 5 seconds to enter them again in the setup portal.
 
 **The Room screen says "No sensor reading".** Check the DHT22's data wire on GPIO 15 and its power. A bare sensor needs the 10 kΩ pull-up resistor described above.
 

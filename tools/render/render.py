@@ -31,7 +31,6 @@ SKETCH = REPO / "deskpal"
 DOCS = REPO / "docs"
 
 OLED_W, OLED_H = 128, 64
-# The 2x2 sheet in the README (docs/screens.png) is composed by tools/banner/render.py.
 SCREENS = ["clock", "weather", "room", "github", "portal"]
 
 # ---------- Look ----------
@@ -214,7 +213,6 @@ def main():
             path = out / "rotation.gif"
             rotation_gif(frames, path)
             print("wrote", path)
-    print("Now run tools/banner/render.py to update docs/screens.png and docs/banner.png.")
 
 
 if __name__ == "__main__":
